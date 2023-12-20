@@ -1,0 +1,54 @@
+# Node.js
+node_modules/
+lib/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+bower_components/
+jspm_packages/
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn
+yarn-error.log
+.pnp/
+.pnp.js
+
+# dotenv environment variables file
+.env
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# VSCode directories
+.vscode/
+
+# IDE files
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
