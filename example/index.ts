@@ -1,15 +1,7 @@
 import express from 'express';
 import { PSTIssuer, keyGen } from "../src/index.js";
 
-// Só funciona se colocar no arquivo ./lib/example/index.js
-//
-// import crypto, { getRandomValues } from 'crypto' // should have webcrypto.getRandomValues defined
-// if (typeof globalThis.crypto !== 'object') {
-//     globalThis.crypto = crypto
-// }
-// if (typeof global.crypto.getRandomValues !== 'function') {
-//   global.crypto.getRandomValues = getRandomValues
-// }
+// Required to support using of Crypto services
 import crypto from "crypto";
 globalThis.crypto = crypto as Crypto;
 
