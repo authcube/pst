@@ -2,8 +2,6 @@ const voprf = require('@cloudflare/voprf-ts');
 
 const suite = voprf.Oprf.Suite.P384_SHA384;
 
-global.crypto = require("crypto");
-
 async function main() {
     const keypair = await voprf.generateKeyPair(suite);
     console.log(keypair);
