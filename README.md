@@ -11,10 +11,29 @@ npm run build
 ```
 
 
-## Run Example Server
+## Sample Issuer
 
-  > Example has been built using Express Library
+  > Sample has been built using Express Library
 
+  - Start Sample Server
+  
+    ```
+    npm run example
+    ```
+  
+  - Running with Docker
+  
+    - build
+      ```
+      docker-compose build
+      ```
+    
+    - start
+      ```
+      docker-compose up
+      ```
+    
+#### Running with Static Key-Pair and Expiration
   - Generate KeyPair
 
     ```
@@ -30,13 +49,13 @@ npm run build
 
   - Export Key Expiration as Environment Variable
 
-    > Define the timestamp that the Key will expire on the key-commitment endpoint
-
     ```
     export EXPIRY=1708123052048
     ```
-
-### Example Endpoints
+    
+> If running with **Docker** define those variables in docker-compose.yaml or -e argument for docker inline
+    
+### Endpoints
 
   - Key Commitment Endpoint
     

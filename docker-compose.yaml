@@ -1,0 +1,21 @@
+version: "3.1"
+
+services:
+  connect-server:
+    image: sec4you/pst-issuer:latest
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    container_name: pst-issuer
+    environment:
+      - PRIVATE_KEY
+      - PUBLIC_KEY
+      - EXPIRY
+    networks:
+      pstnet:
+        aliases:
+          - issuer
+    ports:
+      - 3000:3000
+networks:
+  pstnet:
