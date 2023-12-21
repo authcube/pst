@@ -1,0 +1,25 @@
+version: 2.1
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run:
+          name: "Docker Image Build and Tagging"
+          command: |
+            export VERSION=$(cat package.json | awk -F '"' '/"version":/ {print $4}')
+            export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
+            wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+            docker build . -t $NAME
+            docker tag $NAME $NAME:$VERSION
+            echo "Version: $VERSION"
+            docker push $NAME:$VERSION
+      - when:
+          condition:
+            equal: [master, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: "Latest Image Upload"
+                command: |
+                  docker push $NAME:latest

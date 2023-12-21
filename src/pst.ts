@@ -62,6 +62,15 @@ export function keyGen(): Promise<{ privateKey: Uint8Array; publicKey: Uint8Arra
     return generateKeyPair(VOPRF.suite);
 }
 
+export function prependKeyID(keyID: number, originalKey: Uint8Array) {
+    const resultBuffer = new ArrayBuffer(4 + originalKey.length);
+    const dataView = new DataView(resultBuffer);
+    dataView.setUint32(0, keyID, false);
+    const originalKeyArray = new Uint8Array(originalKey);
+    new Uint8Array(resultBuffer, 4).set(originalKeyArray);
+    return new Uint8Array(resultBuffer);
+}
+
 export class PSTIssuer {
     constructor(
         public publicKey: Uint8Array,
@@ -70,7 +79,8 @@ export class PSTIssuer {
 
     }
     async key_commitment_data() {
-        const bufferKey = Buffer.from(this.publicKey);
+        const public_key = prependKeyID(1, this.publicKey);
+        const bufferKey = Buffer.from(public_key);
         const base64Key = bufferKey.toString('base64');
         return {
             "PrivateStateTokenV1VOPRF": {
