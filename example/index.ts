@@ -1,6 +1,10 @@
 import express from 'express';
 import { PSTIssuer, keyGen } from "../src/index.js";
 
+// Required to support using of Crypto services
+import crypto from "crypto";
+globalThis.crypto = crypto as Crypto;
+
 const app = express();
 const port = process.env.PORT || 3000;
 const expiryEnv = process.env.EXPIRY;
