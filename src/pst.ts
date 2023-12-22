@@ -18,6 +18,7 @@ import {
 import {
     type TokenTypeEntry
 } from "@cloudflare/privacypass-ts";
+import {Buffer} from "buffer";
 
 export interface VOPRFExtraParams {
     suite: SuiteID;
@@ -57,30 +58,68 @@ export const VOPRF: Readonly<TokenTypeEntry> & VOPRFExtraParams = {
     ...VOPRF_EXTRA_PARAMS,
 } as const;
 
+function extractKeyID(keyWithID: Uint8Array): number {
+    const dataView = new DataView(keyWithID.buffer);
+    return dataView.getUint32(0, false);
+}
 
-export function keyGen(): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
-    return generateKeyPair(VOPRF.suite);
+export function prependKeyID(keyID: number, originalKey: Uint8Array) {
+    const resultBuffer = new ArrayBuffer(4 + originalKey.length);
+    const dataView = new DataView(resultBuffer);
+    dataView.setUint32(0, keyID, false);
+    const originalKeyArray = new Uint8Array(originalKey);
+    new Uint8Array(resultBuffer, 4).set(originalKeyArray);
+    return new Uint8Array(resultBuffer);
+}
+
+export function keyGenWithID(keyID: number): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
+    return new Promise(async (resolve) => {
+        const { privateKey, publicKey } = await generateKeyPair(VOPRF.suite);
+        const privateKeyWithID = prependKeyID(keyID, privateKey);
+        const publicKeyWithID = prependKeyID(keyID, publicKey);
+        resolve({ privateKey: privateKeyWithID, publicKey: publicKeyWithID });
+    });
+}
+
+function extractOriginalKey(keyWithID: Uint8Array): Uint8Array {
+    return new Uint8Array(keyWithID.buffer, 4);
 }
 
 export class PSTIssuer {
     constructor(
-        public publicKey: Uint8Array,
-        public expiry: number
-    ){
+        public keys: { publicKey: Uint8Array; privateKey: Uint8Array; expiry: number }[]
+    ) {}
 
+    findPrivateKey(keyID: number): Uint8Array | undefined {
+        const keyInfo = this.keys.find(({ privateKey }) => {
+            const extractedKeyID = extractKeyID(privateKey);
+            return extractedKeyID === keyID;
+        });
+
+        if (keyInfo) {
+            const { privateKey } = keyInfo;
+            return extractOriginalKey(privateKey);
+        }
+
+        return undefined;
     }
+
     async key_commitment_data() {
-        const bufferKey = Buffer.from(this.publicKey);
-        const base64Key = bufferKey.toString('base64');
+        const keysObject: Record<string, { Y: string; expiry: number }> = {};
+
+        this.keys.forEach(({ publicKey, expiry }, index) => {
+            const bufferKey = Buffer.from(publicKey);
+            const base64Key = bufferKey.toString('base64');
+            keysObject[(index + 1).toString()] = { Y: base64Key, expiry };
+        });
+
         return {
             "PrivateStateTokenV1VOPRF": {
                 "protocol_version": "PrivateStateTokenV1VOPRF",
                 "id": "1",
                 "batchsize": "1",
-                "keys": {
-                    "1": {"Y": base64Key, "expiry": this.expiry}
-                }
+                "keys": keysObject
             }
-        }
+        };
     }
 }

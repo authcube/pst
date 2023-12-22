@@ -11,7 +11,7 @@
   "homepage": "https://github.com/sec4you/pst",
   "repository": "github:sec4you/pst",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "example": "tsc -b example; node ./lib/example/index.js",
