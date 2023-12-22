@@ -35,3 +35,12 @@ jobs:
                 command: |
                   export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
                   docker push $NAME:latest
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test
+      - build:
+          requires:
+            - test
