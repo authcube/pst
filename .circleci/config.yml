@@ -22,4 +22,5 @@ jobs:
             - run:
                 name: "Latest Image Upload"
                 command: |
+                  export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
                   docker push $NAME:latest
