@@ -1,6 +1,6 @@
 {
   "name": "@sec4you/pst",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
   "main": "./lib/src/index.js",
   "module": "./lib/src/index.js",
