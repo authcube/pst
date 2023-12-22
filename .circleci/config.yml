@@ -1,5 +1,16 @@
 version: 2.1
 jobs:
+  test:
+    docker:
+      - image: node:20.10.0-bullseye
+    steps:
+      - checkout
+      - run:
+          name: "Check Version"
+          command: |
+            chmod +x utils/checkVersion.sh
+            export VERSION=$(cat package.json | awk -F '"' '/"version":/ {print $4}')
+            utils/checkVersion.sh
   build:
     machine: true
     steps:
