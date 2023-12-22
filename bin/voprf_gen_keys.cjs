@@ -12,14 +12,25 @@ function prependKeyID(keyID, originalKey) {
 }
 
 async function main() {
-    const keyID = 1;
+    const args = process.argv.slice(2); // Exclude node executable and script name
+    const keyID = parseInt(args[0]);
+
+    if (isNaN(keyID) || keyID < 0) {
+        console.error('Invalid keyID. Please provide a non-negative integer keyID.');
+        process.exit(1);
+    }
+
     const keypair = await voprf.generateKeyPair(suite);
     console.log(keypair);
+
     const privateKey = prependKeyID(keyID, keypair.privateKey);
     const publicKey = prependKeyID(keyID, keypair.publicKey);
+
     let base64PrivateKey = Buffer.from(privateKey).toString('base64');
     let base64PublicKey = Buffer.from(publicKey).toString('base64');
+
     console.log(`Private Key: ${base64PrivateKey}`);
     console.log(`Public Key: ${base64PublicKey}`);
 }
+
 main();

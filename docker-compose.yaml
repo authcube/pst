@@ -8,9 +8,12 @@ services:
       dockerfile: ./Dockerfile
     container_name: pst-issuer
     environment:
-      - PRIVATE_KEY
-      - PUBLIC_KEY
-      - EXPIRY
+      - PRIVATE_KEY1
+      - PUBLIC_KEY1
+      - EXPIRY1
+      - PRIVATE_KEY2
+      - PUBLIC_KEY2
+      - EXPIRY2
     networks:
       pstnet:
         aliases:
