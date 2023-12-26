@@ -105,12 +105,14 @@ export class PSTIssuer {
     }
 
     async key_commitment_data() {
-        const keysObject: Record<string, { Y: string; expiry: number }> = {};
+        const keysObject: Record<string, { Y: string; expiry: string }> = {};
 
         this.keys.forEach(({ publicKey, expiry }, index) => {
             const bufferKey = Buffer.from(publicKey);
             const base64Key = bufferKey.toString('base64');
-            keysObject[(index + 1).toString()] = { Y: base64Key, expiry };
+            const expiryTimestampString = expiry.toString();
+
+            keysObject[(index + 1).toString()] = { Y: base64Key, expiry: expiryTimestampString };
         });
 
         return {
