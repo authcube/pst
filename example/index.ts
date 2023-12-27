@@ -58,11 +58,11 @@ async function getIssuer() {
 
 app.get('/.well-known/trust-token/key-commitment', async (_, res) => {
     let issuer = await getIssuer();
-    res.set({
-        "Content-Type": "application/pst-issuer-directory"
-    });
+    res.writeHead(200, { 'Content-Type': 'application/pst-issuer-directory' });
     let key_commitment_data = await issuer.key_commitment_data();
-    res.json(await key_commitment_data);
+    res.write(JSON.stringify(await key_commitment_data));
+    res.end();
+    //res.json(await key_commitment_data);
 });
 
 
