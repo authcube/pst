@@ -118,8 +118,8 @@ export class PSTIssuer {
         return {
             "PrivateStateTokenV1VOPRF": {
                 "protocol_version": "PrivateStateTokenV1VOPRF",
-                "id": "1",
-                "batchsize": "1",
+                "id": 1,
+                "batchsize": 1,
                 "keys": keysObject
             }
         };
