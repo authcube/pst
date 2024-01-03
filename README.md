@@ -34,11 +34,12 @@ npm run build
       ```
     
 #### Running with Static Key-Pair and Expiration
-  - Generate 2 KeyPairs (Currently only supports 2 keys on example)
+  - Generate up to 6 KeyPairs
 
     ```
     node bin/voprf_gen_keys.cjs 1
     node bin/voprf_gen_keys.cjs 2
+    # Keep creating until node bin/voprf_gen_keys.cjs 6
     ```
 
   - Export Keys as Environment Variables 
@@ -48,13 +49,15 @@ npm run build
     export PUBLIC_KEY1=<BASE64 PUBLIC KEY 1 GENERATED PREVIOUSLY>
     export PRIVATE_KEY2=<BASE64 PRIVATE KEY 2 GENERATED PREVIOUSLY>
     export PUBLIC_KEY2=<BASE64 PUBLIC KEY 2 GENERATED PREVIOUSLY>
+    # Keep defining until PRIVATE_KEY6 and PUBLIC_KEY6
     ```
 
   - Export Key Expiration as Environment Variable
 
     ```
     export EXPIRY1=1709509052048
-    export EXPIR21=1709994102048
+    export EXPIRY2=1709994102048
+    # Keep defining until EXPIRY6
     ```
     
 > If running with **Docker** define those variables in docker-compose.yaml or -e argument for docker inline
@@ -84,6 +87,5 @@ npm run build
   - Implement Token Issuance
   - Implement Token Redemption
 - Example
-  - Support for up to 6 keys (max defined on spec)
   - Issuance Endpoint
   - Redemption Endpoint

@@ -1,0 +1,146 @@
+/*
+ Copyright 2023 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
+body {
+  font-family: "Google Sans", sans-serif;
+  font-weight: 400;
+  width: 90vw;
+  height: 100vh;
+  padding: 0;
+  margin: 50px auto;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+footer {
+  border-top: 1px solid #ccc;
+  margin: 0 auto;
+  padding: 20px 0 0 0;
+  text-align: center;
+  width: 50vw;
+}
+
+section {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+}
+
+details {
+  max-width: 100%;
+  min-width: 30%;
+}
+
+form {
+  color: #333;
+}
+
+fieldset {
+  border: solid 1px #ccc;
+  border-radius: 4px;
+  padding: 0.8em 2em;
+}
+
+input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+section > ul {
+  margin-block-start: 1rem;
+}
+
+section > ul > li {
+  visibility: hidden;
+}
+
+button {
+  font-size: 1em;
+  background-color: #eee;
+  border-radius: 4px;
+  border: solid 1px #ccc;
+  color: #555;
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ccc;
+}
+
+hr {
+  display: block;
+  width: 100%;
+}
+
+h1 {
+  border-bottom: 1px solid #ccc;
+  font-weight: 400;
+  font-size: 2rem;
+  padding: 0 0 10px 0;
+  text-align: center;
+}
+
+h2 {
+  font-weight: 400;
+  text-align: center;
+}
+
+a {
+  color: #3740ff;
+}
+
+a:hover {
+  color: #3740ff;
+  text-decoration: none;
+}
+
+ul {
+  margin: 3em 0;
+  padding-left: 10rem;
+}
+
+li {
+  line-height: 2rem;
+  list-style: none;
+}
+
+label {
+  cursor: pointer;
+}
+
+strong {
+  color: red;
+}
+
+em {
+  font-weight: bold;
+}
+
+pre {
+  width: 100%;
+  overflow: scroll;
+}
