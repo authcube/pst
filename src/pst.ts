@@ -63,7 +63,7 @@ export const VOPRF: Readonly<TokenTypeEntry> & VOPRFExtraParams = {
     ...VOPRF_EXTRA_PARAMS,
 } as const;
 
-export class TokenRequest {
+export class IssueRequest {
 
     constructor(
         public readonly blindedMsg: Uint8Array,
@@ -74,7 +74,7 @@ export class TokenRequest {
         }
     }
 
-    static deserialize(bytes: Uint8Array): TokenRequest {
+    static deserialize(bytes: Uint8Array): IssueRequest {
         let offset = 0;
         const input = new DataView(bytes.buffer);
 
@@ -85,7 +85,7 @@ export class TokenRequest {
         const blindedMsg = new Uint8Array(input.buffer.slice(offset, offset + input.byteLength));
         console.log(`blindedMsg: ${blindedMsg}`);
 
-        return new TokenRequest(blindedMsg);
+        return new IssueRequest(blindedMsg);
     }
 
     serialize(): Uint8Array {
@@ -103,22 +103,22 @@ export class TokenRequest {
 }
 
 
-export class TokenResponse {
+export class IssueResponse {
   /*
         struct {
           uint16 issued;
           uint32 key_id;
-          SignedNonce signed[issued];
+          signedNonce signed[issued];
           opaque proof<1..2^16-1>; // Bytestring containing a serialized DLEQProof struct.
         } IssueResponse;
    */
     constructor(
         public readonly issued: number,
         public readonly keyID: number,
-        public readonly evaluateMsg: Uint8Array,
+        public readonly signedNonce: Uint8Array,
         public readonly evaluateProof: Uint8Array,
     ) {
-        if (evaluateMsg.length !== VOPRF.Ne) {
+        if (signedNonce.length !== VOPRF.Ne) {
             throw new Error('evaluate_msg has invalid size');
         }
         if (evaluateProof.length !== 2 * VOPRF.Ns) {
@@ -126,8 +126,8 @@ export class TokenResponse {
         }
     }
 
-    static deserialize(bytes: Uint8Array): TokenResponse {
-        console.log('Deserializing TokenResponse')
+    static deserialize(bytes: Uint8Array): IssueResponse {
+        console.log('Deserializing IssueResponse')
         let offset = 0;
         const issued = (new DataView(bytes.buffer)).getUint16(offset, false);
         offset += 2;
@@ -135,10 +135,10 @@ export class TokenResponse {
         const keyID = (new DataView(bytes.buffer)).getUint32(offset, false);
         offset += 4;
         console.log(`KeyID: ${keyID}`);
-        const evaluateMsg = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
+        const signedNonce = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
         offset += VOPRF.Ne;
         const evaluateProof = new Uint8Array(bytes.slice(offset, offset + 2 * VOPRF.Ns));
-        return new TokenResponse(issued, keyID, evaluateMsg, evaluateProof);
+        return new IssueResponse(issued, keyID, signedNonce, evaluateProof);
     }
 
     serialize(): Uint8Array {
@@ -156,7 +156,7 @@ export class TokenResponse {
         new DataView(b).setUint8(0, 4);
         output.push(b);
 
-        b = this.evaluateMsg.buffer;
+        b = this.signedNonce.buffer;
         output.push(b);
 
         b = this.evaluateProof.buffer;
@@ -215,7 +215,7 @@ export class PSTIssuer {
         }
     }
 
-    async issue(tokReq: TokenRequest): Promise<TokenResponse> {
+    async issue(tokReq: IssueRequest): Promise<IssueResponse> {
         console.log(`Total Keys: ${this.keys.length}`);
         const randomIndex = Math.floor(Math.random() * this.keys.length) + 1;
         console.log(`Key Selected: ${randomIndex}`);
@@ -234,7 +234,7 @@ export class PSTIssuer {
         }
         const evaluateProof = evaluation.proof.serialize();
 
-        return new TokenResponse(1, randomIndex, evaluateMsg, evaluateProof);
+        return new IssueResponse(1, randomIndex, evaluateMsg, evaluateProof);
     }
 
 

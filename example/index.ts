@@ -1,5 +1,5 @@
 import express from 'express';
-import { PSTIssuer, keyGenWithID, TokenRequest } from "../src/index.js";
+import { PSTIssuer, keyGenWithID, IssueRequest } from "../src/index.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -81,7 +81,7 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
 
         if (sec_private_state_token) {
             const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
-            const tokReq = TokenRequest.deserialize(decodedToken);
+            const tokReq = IssueRequest.deserialize(decodedToken);
             console.log(`token request: ${tokReq.serialize()}`);
             const tokRes = await issuer.issue(tokReq);
             const token = Buffer.from(tokRes.serialize()).toString('base64');
@@ -89,7 +89,6 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
             console.log(`token response KeyID: ${tokRes.keyID}`);
             console.log(`token response Issued: ${tokRes.issued}`);
             console.log(`token: ${token}`);
-            res.set({"Access-Control-Allow-Origin": "*"});
             res.append("sec-private-state-token", token);
             return res.send();
         }
