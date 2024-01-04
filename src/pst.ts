@@ -152,6 +152,10 @@ export class TokenResponse {
         new DataView(b).setUint32(0, this.keyID);
         output.push(b);
 
+        b = new ArrayBuffer(1);
+        new DataView(b).setUint8(0, 4);
+        output.push(b);
+
         b = this.evaluateMsg.buffer;
         output.push(b);
 
@@ -168,11 +172,12 @@ function extractKeyID(keyWithID: Uint8Array): number {
 }
 
 export function prependKeyID(keyID: number, byteArray: Uint8Array) {
-    const resultBuffer = new ArrayBuffer(4 + byteArray.length);
+    const resultBuffer = new ArrayBuffer(5 + byteArray.length);
     const dataView = new DataView(resultBuffer);
     dataView.setUint32(0, keyID, false);
+    dataView.setUint8(4, 4);
     const originalKeyArray = new Uint8Array(byteArray);
-    new Uint8Array(resultBuffer, 4).set(originalKeyArray);
+    new Uint8Array(resultBuffer, 5).set(originalKeyArray);
     return new Uint8Array(resultBuffer);
 }
 
@@ -186,7 +191,7 @@ export function keyGenWithID(keyID: number): Promise<{ privateKey: Uint8Array; p
 }
 
 function extractOriginalKey(keyWithID: Uint8Array): Uint8Array {
-    return new Uint8Array(keyWithID.buffer, 4);
+    return new Uint8Array(keyWithID.buffer, 5);
 }
 
 export class PSTIssuer {

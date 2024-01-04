@@ -3,11 +3,12 @@ const voprf = require('@cloudflare/voprf-ts');
 const suite = voprf.Oprf.Suite.P384_SHA384;
 
 function prependKeyID(keyID, originalKey) {
-    const resultBuffer = new ArrayBuffer(4 + originalKey.length);
+    const resultBuffer = new ArrayBuffer(5 + originalKey.length);
     const dataView = new DataView(resultBuffer);
     dataView.setUint32(0, keyID, false);
+    dataView.setUint8(4, 4);
     const originalKeyArray = new Uint8Array(originalKey);
-    new Uint8Array(resultBuffer, 4).set(originalKeyArray);
+    new Uint8Array(resultBuffer, 5).set(originalKeyArray);
     return new Uint8Array(resultBuffer);
 }
 
