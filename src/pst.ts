@@ -9,7 +9,7 @@
 import {
     Oprf,
     EvaluationRequest,
-    generateKeyPair,
+    randomPrivateKey,
     VOPRFServer,
     type DLEQParams,
     type Group,
@@ -41,7 +41,7 @@ const VOPRF_HASH = Oprf.getHash(VOPRF_SUITE) as HashID;
 const VOPRF_EXTRA_PARAMS: VOPRFExtraParams = {
     suite: VOPRF_SUITE,
     group: VOPRF_GROUP,
-    Ne: VOPRF_GROUP.eltSize(),
+    Ne: VOPRF_GROUP.eltSize(false),
     Ns: VOPRF_GROUP.scalarSize(),
     Nk: Oprf.getOprfSize(VOPRF_SUITE),
     hash: VOPRF_HASH,
@@ -119,6 +119,7 @@ export class IssueResponse {
         public readonly evaluateProof: Uint8Array,
     ) {
         if (signedNonce.length !== VOPRF.Ne) {
+            console.log(`Length ${signedNonce.length}, Ne ${VOPRF.Ne}`);
             throw new Error('evaluate_msg has invalid size');
         }
         if (evaluateProof.length !== 2 * VOPRF.Ns) {
@@ -127,7 +128,7 @@ export class IssueResponse {
     }
 
     static deserialize(bytes: Uint8Array): IssueResponse {
-        console.log('Deserializing IssueResponse')
+        console.log('Deserializing IssueResponse');
         let offset = 0;
         const issued = (new DataView(bytes.buffer)).getUint16(offset, false);
         offset += 2;
@@ -152,10 +153,6 @@ export class IssueResponse {
         new DataView(b).setUint32(0, this.keyID);
         output.push(b);
 
-        b = new ArrayBuffer(1);
-        new DataView(b).setUint8(0, 4);
-        output.push(b);
-
         b = this.signedNonce.buffer;
         output.push(b);
 
@@ -172,18 +169,26 @@ function extractKeyID(keyWithID: Uint8Array): number {
 }
 
 export function prependKeyID(keyID: number, byteArray: Uint8Array) {
-    const resultBuffer = new ArrayBuffer(5 + byteArray.length);
+    const resultBuffer = new ArrayBuffer(4 + byteArray.length);
     const dataView = new DataView(resultBuffer);
     dataView.setUint32(0, keyID, false);
-    dataView.setUint8(4, 4);
     const originalKeyArray = new Uint8Array(byteArray);
-    new Uint8Array(resultBuffer, 5).set(originalKeyArray);
+    new Uint8Array(resultBuffer, 4).set(originalKeyArray);
     return new Uint8Array(resultBuffer);
 }
 
+export function generatePublicKey(id: SuiteID, privateKey: Uint8Array) {
+    const gg = Oprf.getGroup(id);
+    const priv = gg.desScalar(privateKey);
+    const pub = gg.mulGen(priv);
+    return pub.serialize(false);
+}
+
+
 export function keyGenWithID(keyID: number): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
     return new Promise(async (resolve) => {
-        const { privateKey, publicKey } = await generateKeyPair(VOPRF.suite);
+        const privateKey = await randomPrivateKey(VOPRF.suite);
+        const publicKey = await generatePublicKey(VOPRF.suite, privateKey);
         const privateKeyWithID = prependKeyID(keyID, privateKey);
         const publicKeyWithID = prependKeyID(keyID, publicKey);
         resolve({ privateKey: privateKeyWithID, publicKey: publicKeyWithID });
@@ -191,7 +196,7 @@ export function keyGenWithID(keyID: number): Promise<{ privateKey: Uint8Array; p
 }
 
 function extractOriginalKey(keyWithID: Uint8Array): Uint8Array {
-    return new Uint8Array(keyWithID.buffer, 5);
+    return new Uint8Array(keyWithID.buffer, 4);
 }
 
 export class PSTIssuer {
@@ -227,7 +232,7 @@ export class PSTIssuer {
         if (evaluation.evaluated.length !== 1) {
             throw new Error('evaluation is of a non-single element');
         }
-        const evaluateMsg = evaluation.evaluated[0].serialize();
+        const evaluateMsg = evaluation.evaluated[0].serialize(false);
 
         if (typeof evaluation.proof === 'undefined') {
             throw new Error('evaluation has no DLEQ proof');
