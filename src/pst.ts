@@ -43,7 +43,8 @@ const VOPRF_EXTRA_PARAMS: VOPRFExtraParams = {
     group: VOPRF_GROUP,
     Ne: VOPRF_GROUP.eltSize(false),
     Ns: VOPRF_GROUP.scalarSize(),
-    Nk: Oprf.getOprfSize(VOPRF_SUITE),
+    // Nk: Oprf.getOprfSize(VOPRF_SUITE),
+    Nk: 64,
     hash: VOPRF_HASH,
     dleqParams: {
         gg: VOPRF_GROUP,
@@ -82,8 +83,9 @@ export class IssueRequest {
         console.log(`Issue Count: ${issue_count}`);
         offset += 2;
 
-        const blindedMsg = new Uint8Array(input.buffer.slice(offset, offset + input.byteLength));
-        console.log(`blindedMsg: ${blindedMsg}`);
+        // const blindedMsg = new Uint8Array(input.buffer.slice(offset, offset + input.byteLength));
+        const blindedMsg = new Uint8Array(input.buffer.slice(offset, input.byteLength));
+        console.log(`blindedMsg: (${blindedMsg.length}) ${blindedMsg}`);
 
         return new IssueRequest(blindedMsg);
     }
@@ -118,7 +120,7 @@ export class IssueResponse {
         public readonly signedNonce: Uint8Array,
         public readonly evaluateProof: Uint8Array,
     ) {
-        if (signedNonce.length !== VOPRF.Ne) {
+        if (signedNonce.length !== VOPRF.Ne ) {
             console.log(`Length ${signedNonce.length}, Ne ${VOPRF.Ne}`);
             throw new Error('evaluate_msg has invalid size');
         }
@@ -154,6 +156,10 @@ export class IssueResponse {
         output.push(b);
 
         b = this.signedNonce.buffer;
+        output.push(b);
+
+        b = new ArrayBuffer(2);
+        new DataView(b).setUint16(0, this.evaluateProof.buffer.byteLength);
         output.push(b);
 
         b = this.evaluateProof.buffer;
@@ -232,13 +238,17 @@ export class PSTIssuer {
         if (evaluation.evaluated.length !== 1) {
             throw new Error('evaluation is of a non-single element');
         }
+
+        // evaluateMsg should also contain the blinded message
         const evaluateMsg = evaluation.evaluated[0].serialize(false);
 
         if (typeof evaluation.proof === 'undefined') {
             throw new Error('evaluation has no DLEQ proof');
         }
+
         const evaluateProof = evaluation.proof.serialize();
 
+        // return new IssueResponse(1, randomIndex, evaluateMsg, evaluateProof);
         return new IssueResponse(1, randomIndex, evaluateMsg, evaluateProof);
     }
 
