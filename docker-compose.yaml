@@ -14,6 +14,18 @@ services:
       - PRIVATE_KEY2
       - PUBLIC_KEY2
       - EXPIRY2
+      - PRIVATE_KEY3
+      - PUBLIC_KEY3
+      - EXPIRY3
+      - PRIVATE_KEY4
+      - PUBLIC_KEY4
+      - EXPIRY4
+      - PRIVATE_KEY5
+      - PUBLIC_KEY5
+      - EXPIRY5
+      - PRIVATE_KEY6
+      - PUBLIC_KEY6
+      - EXPIRY6
     networks:
       pstnet:
         aliases:
