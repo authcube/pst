@@ -2,6 +2,10 @@
 
 Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)
 
+## Disclaimer
+
+This repository is **UNDER DEVELOPMENT** and not ready for production environments yet.
+
 
 ## Install Dependencies and Build
 
