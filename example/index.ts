@@ -47,6 +47,9 @@ async function initializeIssuer(): Promise<PSTIssuer> {
                     expiry: getExpiryByEnv(expiryEnv),
                 }))
             );
+            console.log(`Loaded private key ${i} -> ${privateKeyEnv}`);
+            console.log(`Loaded public key ${i} -> ${publicKeyEnv}`);
+            console.log(`Loaded expiry key ${i} -> ${expiryEnv}`);
         }
     }
     const resolvedKeys = await Promise.all(keys);
@@ -62,7 +65,8 @@ async function getIssuer() {
 
 app.get('/.well-known/trust-token/key-commitment', async (_, res) => {
     let issuer = await getIssuer();
-    res.writeHead(200, { 'Content-Type': 'application/pst-issuer-directory' });
+    // res.writeHead(200, { 'Content-Type': 'application/pst-issuer-directory' });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
     let key_commitment_data = await issuer.key_commitment_data();
     res.write(JSON.stringify(await key_commitment_data));
     res.end();
@@ -81,17 +85,34 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
 
         if (sec_private_state_token) {
             const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
+            // const decodedToken = Uint8Array.from(atob(sec_private_state_token), c => c.charCodeAt(0));
             const tokReq = IssueRequest.deserialize(decodedToken);
             console.log(`token request: ${tokReq.serialize()}`);
             const tokRes = await issuer.issue(tokReq);
             const tokResSerialized = tokRes.serialize();
             const token = Buffer.from(tokResSerialized).toString('base64');
+
+            const tokRes2 = await issuer.issue2(sec_private_state_token);
+            // @ts-ignore
+            const respB64 = btoa(String.fromCharCode.apply(null, tokRes2))
+
+            // const respB64 = btoa(String.fromCharCode.apply(null, resp))
             console.log(`token serialized: (${tokResSerialized.length}) ${tokResSerialized}`);
             console.log(`token response KeyID: ${tokRes.keyID}`);
             console.log(`token response Issued: ${tokRes.issued}`);
             console.log(`token b64: (${token.length}) ${token}`);
-            res.append("sec-private-state-token", token);
-            return res.send();
+            console.log(`token respB64: (${respB64.length}) ${respB64}`);
+
+            res.statusCode = 200
+            res.setHeader('Content-Type', "text/html")
+            // res.append("sec-private-state-token", token);
+            res.setHeader('Sec-Private-State-Token', respB64)
+            res.write("Issuing tokens.")
+            // return res.send();
+            res.send();
+
+            return res.end();
+
         }
         return res.sendStatus(400);
     /*}

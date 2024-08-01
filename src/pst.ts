@@ -165,7 +165,10 @@ export class IssueResponse {
         b = this.evaluateProof.buffer;
         output.push(b);
 
-        return new Uint8Array(joinAll(output));
+        let output_joined: Uint8Array;
+        output_joined = new Uint8Array(joinAll(output));
+
+        return output_joined;
     }
 }
 
@@ -219,11 +222,51 @@ export class PSTIssuer {
         if (keyInfo) {
             const { privateKey } = keyInfo;
             const original_key = extractOriginalKey(privateKey);
+
             return new VOPRFServer(VOPRF.suite, original_key);
         }
         else {
             throw new Error(`Invalid keyID`);
         }
+    }
+
+    async issue2(req: string): Promise<Uint8Array> {
+        const _VOPRF_SUITE = Oprf.Suite.P384_SHA384;
+        const _VOPRF_GROUP = Oprf.getGroup(_VOPRF_SUITE);
+
+        const privKey = Uint8Array.from(atob("AAAAAaW5oDarXobBUFr0x1kaDC0hbFbufCPfai3dkfRvZPT5C3amoZ9F8gsIFAwk4WYZaw=="), c => c.charCodeAt(0))
+
+        const ir = Uint8Array.from(atob(req), c => c.charCodeAt(0))
+        const blindedElementSerialized = new Uint8Array(ir.slice(2, 99))
+        const blindedElement = _VOPRF_GROUP.desElt(blindedElementSerialized);
+
+        const server = new VOPRFServer(_VOPRF_SUITE, privKey);
+        const evalReq = new EvaluationRequest([blindedElement]);
+        const evalRes = await server.blindEvaluate(evalReq);
+
+        const evaluatedElement = evalRes.evaluated[0]
+        const proof = evalRes.proof
+
+        const evaluatedElementSerialized = evaluatedElement.serialize(false);
+        // @ts-ignore
+        const proofSerialized = proof.serialize();
+
+        var responseBytes = new Array(201).fill(0)
+        responseBytes[1] = 1
+        responseBytes[5] = 1
+        // [6:103] ECPoint evaluated
+        for (let i = 6; i < 103; i++) {
+            responseBytes[i] = evaluatedElementSerialized[i-6]
+        }
+        responseBytes[104] = 96
+        // [105:201] proof
+        for (let i = 105; i < 201; i++) {
+            responseBytes[i] = proofSerialized[i-105]
+        }
+
+        const resp = new Uint8Array(responseBytes)
+
+        return resp;
     }
 
     async issue(tokReq: IssueRequest): Promise<IssueResponse> {
