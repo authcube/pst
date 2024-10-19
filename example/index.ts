@@ -105,8 +105,9 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
 
             res.statusCode = 200
             res.setHeader('Content-Type', "text/html")
-            // res.append("sec-private-state-token", token);
-            res.setHeader('Sec-Private-State-Token', respB64)
+            res.append("sec-private-state-token", token);
+            // res.setHeader('Sec-Private-State-Token', respB64)
+            res.setHeader('Sec-Private-State-Token', token)
             res.write("Issuing tokens.")
             // return res.send();
             res.send();

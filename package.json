@@ -35,7 +35,7 @@
   ],
   "dependencies": {
     "@cloudflare/privacypass-ts": "^0.4.0",
-    "@cloudflare/voprf-ts": "^0.21.2",
+    "@cloudflare/voprf-ts": "^1.0.0",
     "cors": "^2.8.5",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
