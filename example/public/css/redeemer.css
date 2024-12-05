@@ -1,0 +1,130 @@
+/*
+ Copyright 2023 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
+body {
+    font-family: "Google Sans", Segoe UI, system-ui, -apple-system, sans-serif;
+    font-size: 0.8em;
+    margin: 50px;
+}
+
+main {
+    color: #333;
+    margin: 0 auto 80px auto;
+    max-width: 500px;
+}
+
+footer {
+    border-top: 1px solid #ccc;
+    font-size: 1rem;
+    margin: 0 auto;
+    padding: 10px 0 0 0;
+    text-align: center;
+    width: 50vw;
+}
+
+p {
+    font-family: "Google Sans", sans-serif;
+    font-weight: 200;
+    line-height: 1.5em;
+}
+
+h1 {
+    border-bottom: 1px solid #ccc;
+    font-weight: 400;
+    font-size: 2rem;
+    margin: 0 0 80px 0;
+    padding: 0 0 10px 0;
+    text-align: center;
+}
+
+strong {
+    color: red;
+}
+
+em {
+    font-weight: bold;
+    font-style: normal;
+}
+
+details {
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+details[open] {
+    height: 16em;
+}
+
+details[open] summary {
+    display: none;
+}
+
+dialog {
+    top: 10vh;
+    max-width: 80vw;
+    max-height: 80vh;
+
+    border-radius: 1rem;
+    border: solid 1px #ccc;
+    box-shadow: 0 0 4px black;
+}
+
+dialog section {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+dialog::backdrop {
+    background: rgba(200, 200, 200, 0.8);
+}
+
+dialog h2 {
+    color: red;
+    margin-block-top: 1rem;
+    margin-block-bottom: 1rem;
+}
+
+dialog ol {
+    margin: 0;
+    padding: 0 0 0 1.4rem;
+}
+
+dialog ol li {
+    font-size: 1rem;
+    line-height: 1.8rem;
+    display: none;
+}
+
+#finish {
+    color: blue;
+    font-weight: bold;
+}
+
+dialog a:visited {
+    color: #3740ff;
+}
+
+details {
+    height: 1em;
+    padding: 1em;
+    background: #eee;
+    border-radius: 4px;
+    transition: 0.5s;
+}

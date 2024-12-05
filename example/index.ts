@@ -1,5 +1,6 @@
+
 import express from 'express';
-import { PSTIssuer, keyGenWithID, IssueRequest } from "../src/index.js";
+import {PSTIssuer, keyGenWithID, IssueRequest, RedeemerRequest, PSTRedeemer} from "../src/index.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -92,16 +93,12 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
             const tokResSerialized = tokRes.serialize();
             const token = Buffer.from(tokResSerialized).toString('base64');
 
-            const tokRes2 = await issuer.issue2(sec_private_state_token);
-            // @ts-ignore
-            const respB64 = btoa(String.fromCharCode.apply(null, tokRes2))
 
             // const respB64 = btoa(String.fromCharCode.apply(null, resp))
             console.log(`token serialized: (${tokResSerialized.length}) ${tokResSerialized}`);
             console.log(`token response KeyID: ${tokRes.keyID}`);
             console.log(`token response Issued: ${tokRes.issued}`);
             console.log(`token b64: (${token.length}) ${token}`);
-            console.log(`token respB64: (${respB64.length}) ${respB64}`);
 
             res.statusCode = 200
             res.setHeader('Content-Type', "text/html")
@@ -126,6 +123,74 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
 app.get("/", async (_, res) => {
     return res.render("issuer")
 });
+
+// endpoint to receive requests to /redeemer
+app.get("/redeem", async (_, res) => {
+    return res.render("redeemer")
+})
+
+app.get(`/private-state-token/redemption`, async (req, res) => {
+    try {
+        console.log(req.headers);
+        const redemptionToken = req.headers["sec-private-state-token"] as string;
+        console.log(`redemptionToken size: ${redemptionToken.length}`);
+        console.log({redemptionToken});
+
+        if (redemptionToken && !redemptionToken.match(BASE64FORMAT)) {
+            return res.sendStatus(400);
+        }
+
+        if (redemptionToken) {
+            const decodedToken = Uint8Array.from(Buffer.from(redemptionToken, 'base64'));
+            console.log(`decoded token: ${decodedToken}`);
+            const tokReq = RedeemerRequest.deserialize(decodedToken);
+            console.log(`token deserialized`);
+
+            let redeemer = new PSTRedeemer();
+            let issuer = await getIssuer();
+            let redeemRes = await redeemer.redeem(tokReq, issuer);
+
+            const resToken = Buffer.from(redeemRes.serialize()).toString('base64');
+
+            res.statusCode = 200;
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            res.append("sec-private-state-token", resToken);
+            res.write("Token redeemed.");
+            return res.send();
+        }
+
+        return res.sendStatus(400);
+    } catch (e) {
+        console.log(`Error on redemption: ${e}`);
+        return res.sendStatus(500);
+    }
+});
+
+app.get("/private-state-token/send-rr", async (req, res) => {
+
+    console.log(req.headers);
+    const redemptionRecord = req.headers["sec-redemption-record"] as string;
+    console.log(`redemptionToken size: ${redemptionRecord.length}`);
+    console.log({redemptionToken: redemptionRecord});
+
+    // Extract the redemption-record value
+    const redemptionRecordMatch = redemptionRecord.match(/redemption-record="([^"]+)"/);
+
+    if (!redemptionRecordMatch || !redemptionRecordMatch[1]) {
+        console.log("Redemption record header not found");
+        res.sendStatus(400)
+    }
+
+    const redemptionRecordValue = redemptionRecordMatch?.[1];
+    console.log(redemptionRecordValue);
+
+    // TODO impl redemption-record
+    const r = Buffer.from(redemptionRecordValue!, "base64").toString()
+
+    res.statusCode = 200;
+    res.set({ "Access-Control-Allow-Origin": "*" })
+    res.send(r)
+})
 
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);

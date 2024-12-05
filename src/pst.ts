@@ -14,7 +14,7 @@ import {
     type DLEQParams,
     type Group,
     type SuiteID,
-    type HashID,
+    type HashID, VOPRFClient, /* type Elt, */
 } from '@cloudflare/voprf-ts';
 
 import {joinAll} from './util.js';
@@ -22,6 +22,7 @@ import {Buffer} from "buffer";
 import {
   type TokenTypeEntry
 } from '@cloudflare/privacypass-ts'
+
 
 export interface VOPRFExtraParams {
     suite: SuiteID;
@@ -38,6 +39,10 @@ export interface VOPRFExtraParams {
 const VOPRF_SUITE = Oprf.Suite.P384_SHA384;
 const VOPRF_GROUP = Oprf.getGroup(VOPRF_SUITE);
 const VOPRF_HASH = Oprf.getHash(VOPRF_SUITE) as HashID;
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
 const VOPRF_EXTRA_PARAMS: VOPRFExtraParams = {
     suite: VOPRF_SUITE,
     group: VOPRF_GROUP,
@@ -46,10 +51,13 @@ const VOPRF_EXTRA_PARAMS: VOPRFExtraParams = {
     // Nk: Oprf.getOprfSize(VOPRF_SUITE),
     Nk: 64,
     hash: VOPRF_HASH,
+
     dleqParams: {
         gg: VOPRF_GROUP,
         hashID: VOPRF_HASH,
+        // @ts-ignore
         hash: Oprf.Crypto.hash,
+        // @ts-ignore
         dst: '',
     },
 } as const;
@@ -230,43 +238,20 @@ export class PSTIssuer {
         }
     }
 
-    async issue2(req: string): Promise<Uint8Array> {
-        const _VOPRF_SUITE = Oprf.Suite.P384_SHA384;
-        const _VOPRF_GROUP = Oprf.getGroup(_VOPRF_SUITE);
+    findClientByKeyID(keyID: number): VOPRFClient {
+        const keyInfo = this.keys.find(({ publicKey }) => {
+            const extractedKeyID = extractKeyID(publicKey);
+            return extractedKeyID === keyID;
+        });
+        if (keyInfo) {
+            const { publicKey } = keyInfo;
+            const original_key = extractOriginalKey(publicKey);
 
-        const privKey = Uint8Array.from(atob("AAAAAaW5oDarXobBUFr0x1kaDC0hbFbufCPfai3dkfRvZPT5C3amoZ9F8gsIFAwk4WYZaw=="), c => c.charCodeAt(0))
-
-        const ir = Uint8Array.from(atob(req), c => c.charCodeAt(0))
-        const blindedElementSerialized = new Uint8Array(ir.slice(2, 99))
-        const blindedElement = _VOPRF_GROUP.desElt(blindedElementSerialized);
-
-        const server = new VOPRFServer(_VOPRF_SUITE, privKey);
-        const evalReq = new EvaluationRequest([blindedElement]);
-        const evalRes = await server.blindEvaluate(evalReq);
-
-        const evaluatedElement = evalRes.evaluated[0]
-        const proof = evalRes.proof
-
-        const evaluatedElementSerialized = evaluatedElement.serialize(false);
-        // @ts-ignore
-        const proofSerialized = proof.serialize();
-
-        var responseBytes = new Array(201).fill(0)
-        responseBytes[1] = 1
-        responseBytes[5] = 1
-        // [6:103] ECPoint evaluated
-        for (let i = 6; i < 103; i++) {
-            responseBytes[i] = evaluatedElementSerialized[i-6]
+            return new VOPRFClient(VOPRF.suite, original_key);
         }
-        responseBytes[104] = 96
-        // [105:201] proof
-        for (let i = 105; i < 201; i++) {
-            responseBytes[i] = proofSerialized[i-105]
+        else {
+            throw new Error(`Invalid keyID`);
         }
-
-        const resp = new Uint8Array(responseBytes)
-
-        return resp;
     }
 
     async issue(tokReq: IssueRequest): Promise<IssueResponse> {
@@ -315,5 +300,95 @@ export class PSTIssuer {
                 "keys": keysObject
             }
         };
+    }
+
+}
+
+export class RedeemerRequest {
+    constructor(
+        public readonly keyId: number,
+        public readonly nonce: Uint8Array,
+        public readonly ecPointW: Uint8Array,
+        public readonly clientData: Uint8Array) {}
+
+    static deserialize(bytes: Uint8Array): RedeemerRequest {
+        console.log('Deserializing RedeemerRequest');
+        // size of token is 241
+        // [2 bytes for token size, token bytes, 2 bytes for client_data size, client_data bytes]
+
+        let offset = 0;
+
+        const tokenSize = new DataView(bytes.buffer).getUint16(offset, false);
+        offset += 2;
+        console.log(`Token Size: ${tokenSize}`);
+
+        const keyId = new DataView(bytes.buffer).getUint32(offset, false);
+        offset += 4;
+
+        const nonce = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
+        // TODO double check on this
+        offset += VOPRF.Ne + 1;
+
+        const ecPointW = new Uint8Array(bytes.slice(offset, tokenSize));
+
+        offset = tokenSize+2; // must be +2 because of the first 2 bytes on the 'bytes' data
+        const clientDataSize = new DataView(bytes.buffer).getUint16(offset, false);
+        console.log(`Client Data Size: ${clientDataSize}`);
+
+        offset += 2;
+        const clientData = new Uint8Array(bytes.buffer, offset, clientDataSize); // last byte index is 240
+        return new RedeemerRequest(keyId, nonce, ecPointW, clientData);
+    }
+
+    // serialize(): Uint8Array {
+    //     const output = new Uint8Array();
+    //
+    //     return output;
+    // }
+}
+
+
+export class RedeemerResponse {
+    constructor(
+        public readonly keyId: number,
+        public readonly evaluated: Uint8Array,
+    ) {}
+
+    serialize(): Uint8Array {
+        const output = new Array<ArrayBuffer>();
+
+        let b = new ArrayBuffer(2);
+        new DataView(b).setUint16(0, this.keyId);
+        output.push(b);
+
+        b = this.evaluated;
+        output.push(b);
+
+        let output_joined: Uint8Array;
+        output_joined = new Uint8Array(joinAll(output));
+
+        return output_joined;
+    }
+}
+
+export class PSTRedeemer {
+    constructor(
+    ) {}
+
+    async redeem(tokReq: RedeemerRequest, issuer: PSTIssuer) {
+
+        const server = issuer.findServerByKeyID(tokReq.keyId);
+
+        const client = issuer.findClientByKeyID(tokReq.keyId);
+        const [_finalizeData, _evalReq] = await client.blind([tokReq.ecPointW]);
+        const evaluation = await server.blindEvaluate(_evalReq);
+
+        const [output] = await client.finalize(_finalizeData, evaluation);
+
+        // TODO remove verifyFinalize
+        const success = await server.verifyFinalize(tokReq.clientData, output)
+        console.log(success);
+
+        return new RedeemerResponse(tokReq.keyId, output);
     }
 }
