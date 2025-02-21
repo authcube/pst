@@ -11,10 +11,11 @@ import {
     EvaluationRequest,
     randomPrivateKey,
     VOPRFServer,
+    // DLEQProof,
     type DLEQParams,
     type Group,
     type SuiteID,
-    type HashID, VOPRFClient, /* type Elt, */
+    type HashID, VOPRFClient
 } from '@cloudflare/voprf-ts';
 
 import {joinAll} from './util.js';
@@ -319,24 +320,29 @@ export class RedeemerRequest {
         let offset = 0;
 
         const tokenSize = new DataView(bytes.buffer).getUint16(offset, false);
+        console.log(`offset: ${offset} - Token Size: ${tokenSize}`);
         offset += 2;
-        console.log(`Token Size: ${tokenSize}`);
 
         const keyId = new DataView(bytes.buffer).getUint32(offset, false);
+        console.log(`offset: ${offset} - keyId: ${keyId}`);
         offset += 4;
 
-        const nonce = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
-        // TODO double check on this
-        offset += VOPRF.Ne + 1;
+        const nonce = new Uint8Array(bytes.slice(offset, offset + 64));
+        console.log(`offset: ${offset} - nonce: ${nonce.slice(0, 4)} - size: ${nonce.length}`);
+        offset += 64;
 
-        const ecPointW = new Uint8Array(bytes.slice(offset, tokenSize));
+        // const ecPointW = new Uint8Array(bytes.slice(offset, offset + 96));
+        const ecPointW = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
+        console.log(`offset: ${offset} - ecPointW: ${ecPointW.slice(0, 4)} - size: ${ecPointW.length}`);
+        // offset = tokenSize+2; // must be +2 because of the first 2 bytes on the 'bytes' data
+        offset += VOPRF.Ne;
 
-        offset = tokenSize+2; // must be +2 because of the first 2 bytes on the 'bytes' data
         const clientDataSize = new DataView(bytes.buffer).getUint16(offset, false);
-        console.log(`Client Data Size: ${clientDataSize}`);
+        console.log(`offset: ${offset} - Client Data Size: ${clientDataSize}`);
 
         offset += 2;
         const clientData = new Uint8Array(bytes.buffer, offset, clientDataSize); // last byte index is 240
+        console.log(`offset: ${offset} - Client Data: ${clientData}`);
         return new RedeemerRequest(keyId, nonce, ecPointW, clientData);
     }
 
@@ -379,16 +385,40 @@ export class PSTRedeemer {
 
         const server = issuer.findServerByKeyID(tokReq.keyId);
 
-        const client = issuer.findClientByKeyID(tokReq.keyId);
-        const [_finalizeData, _evalReq] = await client.blind([tokReq.ecPointW]);
-        const evaluation = await server.blindEvaluate(_evalReq);
+        try {
+            // Hash nonce into an elliptic curve group element
+            let inputElement = await server.evaluate(tokReq.nonce);
 
-        const [output] = await client.finalize(_finalizeData, evaluation);
+            const point = VOPRF.group.desElt(tokReq.ecPointW);
+            const compressedPoint = point.serialize(true)
+
+            // Check if the length is 48 instead of 49
+            if (inputElement.length === 48) {
+                // Manually prepend `0x03`
+                inputElement = Buffer.concat([Buffer.from([0x03]), Buffer.from(inputElement)]);
+            }
+
+            // Compare issued element with client's W value
+            if (!Buffer.from(inputElement).equals(Buffer.from(compressedPoint))) {
+                throw new Error('InvalidInputError: Issued element does not match client\'s W value');
+            }
+
+            // Construct redemption record based on client_data
+            // const redemptionRecord = {
+            //     timestamp: Date.now(),
+            //     clientData: tokReq.clientData,
+            //     validated: true
+            //     // Add other fields as needed for your application
+            // };
+            //
+            // return redemptionRecord;
+        } catch (e: any) {
+            console.error(e);
+            throw e;
+        }
 
         // TODO remove verifyFinalize
-        const success = await server.verifyFinalize(tokReq.clientData, output)
-        console.log(success);
 
-        return new RedeemerResponse(tokReq.keyId, output);
+        return new RedeemerResponse(tokReq.keyId, tokReq.clientData);
     }
 }

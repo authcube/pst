@@ -88,7 +88,7 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
             const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
             // const decodedToken = Uint8Array.from(atob(sec_private_state_token), c => c.charCodeAt(0));
             const tokReq = IssueRequest.deserialize(decodedToken);
-            console.log(`token request: ${tokReq.serialize()}`);
+            // console.log(`token request: ${tokReq.serialize()}`);
             const tokRes = await issuer.issue(tokReq);
             const tokResSerialized = tokRes.serialize();
             const token = Buffer.from(tokResSerialized).toString('base64');
