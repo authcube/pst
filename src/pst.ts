@@ -23,6 +23,7 @@ import {Buffer} from "buffer";
 import {
   type TokenTypeEntry
 } from '@cloudflare/privacypass-ts'
+import {MyVOPRFServer} from "./myServer.js";
 
 
 export interface VOPRFExtraParams {
@@ -239,6 +240,22 @@ export class PSTIssuer {
         }
     }
 
+    findMyServerByKeyID(keyID: number): MyVOPRFServer {
+        const keyInfo = this.keys.find(({ privateKey }) => {
+            const extractedKeyID = extractKeyID(privateKey);
+            return extractedKeyID === keyID;
+        });
+        if (keyInfo) {
+            const { privateKey } = keyInfo;
+            const original_key = extractOriginalKey(privateKey);
+
+            return new MyVOPRFServer(VOPRF.suite, original_key);
+        }
+        else {
+            throw new Error(`Invalid keyID`);
+        }
+    }
+
     findClientByKeyID(keyID: number): VOPRFClient {
         const keyInfo = this.keys.find(({ publicKey }) => {
             const extractedKeyID = extractKeyID(publicKey);
@@ -358,7 +375,8 @@ export class RedeemerResponse {
     constructor(
         public readonly keyId: number,
         public readonly evaluated: Uint8Array,
-    ) {}
+        public readonly validated: boolean,
+        public readonly redeemptionDate: number) {}
 
     serialize(): Uint8Array {
         const output = new Array<ArrayBuffer>();
@@ -368,6 +386,16 @@ export class RedeemerResponse {
         output.push(b);
 
         b = this.evaluated;
+        output.push(b);
+
+        // Serialize validated boolean
+        b = new ArrayBuffer(1);
+        new DataView(b).setUint8(0, this.validated ? 1 : 0);
+        output.push(b);
+
+        // Serialize redeemptionDate (Unix timestamp in milliseconds)
+        b = new ArrayBuffer(8);
+        new DataView(b).setFloat64(0, this.redeemptionDate);
         output.push(b);
 
         let output_joined: Uint8Array;
@@ -383,7 +411,10 @@ export class PSTRedeemer {
 
     async redeem(tokReq: RedeemerRequest, issuer: PSTIssuer) {
 
-        const server = issuer.findServerByKeyID(tokReq.keyId);
+        let validated = false;
+
+        // const server = issuer.findServerByKeyID(tokReq.keyId);
+        const server = issuer.findMyServerByKeyID(tokReq.keyId);
 
         try {
             // Hash nonce into an elliptic curve group element
@@ -392,17 +423,12 @@ export class PSTRedeemer {
             const point = VOPRF.group.desElt(tokReq.ecPointW);
             const compressedPoint = point.serialize(true)
 
-            // Check if the length is 48 instead of 49
-            if (inputElement.length === 48) {
-                // Manually prepend `0x03`
-                inputElement = Buffer.concat([Buffer.from([0x03]), Buffer.from(inputElement)]);
-            }
-
             // Compare issued element with client's W value
-            if (!Buffer.from(inputElement).equals(Buffer.from(compressedPoint))) {
-                throw new Error('InvalidInputError: Issued element does not match client\'s W value');
-            }
+            // if (!Buffer.from(inputElement).equals(Buffer.from(compressedPoint))) {
+            //     throw new Error('InvalidInputError: Issued element does not match client\'s W value');
+            // }
 
+            validated = Buffer.from(inputElement).equals(Buffer.from(compressedPoint));
             // Construct redemption record based on client_data
             // const redemptionRecord = {
             //     timestamp: Date.now(),
@@ -419,6 +445,6 @@ export class PSTRedeemer {
 
         // TODO remove verifyFinalize
 
-        return new RedeemerResponse(tokReq.keyId, tokReq.clientData);
+        return new RedeemerResponse(tokReq.keyId, tokReq.clientData, validated, Date.now());
     }
 }

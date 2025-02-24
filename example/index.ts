@@ -185,7 +185,11 @@ app.get("/private-state-token/send-rr", async (req, res) => {
     console.log(redemptionRecordValue);
 
     // TODO impl redemption-record
-    const r = Buffer.from(redemptionRecordValue!, "base64").toString()
+    // const r = Buffer.from(redemptionRecord, "base64").toString()
+    const r = {
+        "record": redemptionRecordValue,
+        "domain": req.originalUrl,
+    }
 
     res.statusCode = 200;
     res.set({ "Access-Control-Allow-Origin": "*" })
