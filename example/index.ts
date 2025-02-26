@@ -1,6 +1,6 @@
 
 import express from 'express';
-import {PSTIssuer, keyGenWithID, IssueRequest, RedeemerRequest, PSTRedeemer} from "../src/index.js";
+import {PSTIssuer, keyGenWithID, IssueRequest, RedeemerRequest, PSTRedeemer} from "../src";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,8 +16,8 @@ function getExpiryByEnv(env: string | undefined): number {
         return parseInt(env, 10);
     } else {
         const now = new Date();
-        const timedelta = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-        return timedelta.getTime();
+        const timeDelta = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+        return timeDelta.getTime();
     }
 }
 
@@ -66,58 +66,46 @@ async function getIssuer() {
 
 app.get('/.well-known/trust-token/key-commitment', async (_, res) => {
     let issuer = await getIssuer();
-    // res.writeHead(200, { 'Content-Type': 'application/pst-issuer-directory' });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     let key_commitment_data = await issuer.key_commitment_data();
-    res.write(JSON.stringify(await key_commitment_data));
+    res.write(JSON.stringify(key_commitment_data));
     res.end();
 });
 
 app.get(`/private-state-token/issuance`, async (req, res) => {
-    //try {
-        let issuer = await getIssuer();
-        console.log(req.headers);
-        const sec_private_state_token = req.headers["sec-private-state-token"] as string;
-        console.log({sec_private_state_token});
+    let issuer = await getIssuer();
+    console.debug(req.headers);
+    const sec_private_state_token = req.headers["sec-private-state-token"] as string;
+    console.debug({sec_private_state_token});
 
-        if (sec_private_state_token && !sec_private_state_token.match(BASE64FORMAT)) {
-            return res.sendStatus(400);
-        }
-
-        if (sec_private_state_token) {
-            const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
-            // const decodedToken = Uint8Array.from(atob(sec_private_state_token), c => c.charCodeAt(0));
-            const tokReq = IssueRequest.deserialize(decodedToken);
-            // console.log(`token request: ${tokReq.serialize()}`);
-            const tokRes = await issuer.issue(tokReq);
-            const tokResSerialized = tokRes.serialize();
-            const token = Buffer.from(tokResSerialized).toString('base64');
-
-
-            // const respB64 = btoa(String.fromCharCode.apply(null, resp))
-            console.log(`token serialized: (${tokResSerialized.length}) ${tokResSerialized}`);
-            console.log(`token response KeyID: ${tokRes.keyID}`);
-            console.log(`token response Issued: ${tokRes.issued}`);
-            console.log(`token b64: (${token.length}) ${token}`);
-
-            res.statusCode = 200
-            res.setHeader('Content-Type', "text/html")
-            res.append("sec-private-state-token", token);
-            // res.setHeader('Sec-Private-State-Token', respB64)
-            res.setHeader('Sec-Private-State-Token', token)
-            res.write("Issuing tokens.")
-            // return res.send();
-            res.send();
-
-            return res.end();
-
-        }
+    if (sec_private_state_token && !sec_private_state_token.match(BASE64FORMAT)) {
         return res.sendStatus(400);
-    /*}
-    catch (e){
-        console.log(`Error on issuance: ${e}`)
-        return res.sendStatus(500);
-    }*/
+    }
+
+    if (sec_private_state_token) {
+        const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
+        const tokReq = IssueRequest.deserialize(decodedToken);
+        const tokRes = await issuer.issue(tokReq);
+        const tokResSerialized = tokRes.serialize();
+        const token = Buffer.from(tokResSerialized).toString('base64');
+
+
+        console.debug(`token serialized: (${tokResSerialized.length}) ${tokResSerialized}`);
+        console.debug(`token response KeyID: ${tokRes.keyID}`);
+        console.debug(`token response Issued: ${tokRes.issued}`);
+        console.debug(`token b64: (${token.length}) ${token}`);
+
+        res.statusCode = 200
+        res.setHeader('Content-Type', "text/html")
+        res.append("sec-private-state-token", token);
+        res.setHeader('Sec-Private-State-Token', token)
+        res.write("Issuing tokens.")
+        res.send();
+
+        return res.end();
+
+    }
+    return res.sendStatus(400);
 });
 
 app.get("/", async (_, res) => {
@@ -131,10 +119,10 @@ app.get("/redeem", async (_, res) => {
 
 app.get(`/private-state-token/redemption`, async (req, res) => {
     try {
-        console.log(req.headers);
+        console.debug(req.headers);
         const redemptionToken = req.headers["sec-private-state-token"] as string;
-        console.log(`redemptionToken size: ${redemptionToken.length}`);
-        console.log({redemptionToken});
+        console.debug(`redemptionToken size: ${redemptionToken.length}`);
+        console.debug({redemptionToken});
 
         if (redemptionToken && !redemptionToken.match(BASE64FORMAT)) {
             return res.sendStatus(400);
@@ -142,9 +130,9 @@ app.get(`/private-state-token/redemption`, async (req, res) => {
 
         if (redemptionToken) {
             const decodedToken = Uint8Array.from(Buffer.from(redemptionToken, 'base64'));
-            console.log(`decoded token: ${decodedToken}`);
+            console.debug(`decoded token: ${decodedToken}`);
             const tokReq = RedeemerRequest.deserialize(decodedToken);
-            console.log(`token deserialized`);
+            console.debug(`token deserialized`);
 
             let redeemer = new PSTRedeemer();
             let issuer = await getIssuer();
@@ -161,31 +149,29 @@ app.get(`/private-state-token/redemption`, async (req, res) => {
 
         return res.sendStatus(400);
     } catch (e) {
-        console.log(`Error on redemption: ${e}`);
+        console.error(`Error on redemption: ${e}`);
         return res.sendStatus(500);
     }
 });
 
 app.get("/private-state-token/send-rr", async (req, res) => {
 
-    console.log(req.headers);
+    console.debug(req.headers);
     const redemptionRecord = req.headers["sec-redemption-record"] as string;
-    console.log(`redemptionToken size: ${redemptionRecord.length}`);
-    console.log({redemptionToken: redemptionRecord});
+    console.debug(`redemptionToken size: ${redemptionRecord.length}`);
+    console.debug({redemptionToken: redemptionRecord});
 
     // Extract the redemption-record value
     const redemptionRecordMatch = redemptionRecord.match(/redemption-record="([^"]+)"/);
 
     if (!redemptionRecordMatch || !redemptionRecordMatch[1]) {
-        console.log("Redemption record header not found");
+        console.debug("Redemption record header not found");
         res.sendStatus(400)
     }
 
     const redemptionRecordValue = redemptionRecordMatch?.[1];
-    console.log(redemptionRecordValue);
+    console.debug(redemptionRecordValue);
 
-    // TODO impl redemption-record
-    // const r = Buffer.from(redemptionRecord, "base64").toString()
     const r = {
         "record": redemptionRecordValue,
         "domain": req.originalUrl,

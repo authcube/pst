@@ -10,69 +10,14 @@ import {
     Oprf,
     EvaluationRequest,
     randomPrivateKey,
-    VOPRFServer,
-    // DLEQProof,
-    type DLEQParams,
-    type Group,
     type SuiteID,
-    type HashID, VOPRFClient
 } from '@cloudflare/voprf-ts';
 
 import {joinAll} from './util.js';
 import {Buffer} from "buffer";
-import {
-  type TokenTypeEntry
-} from '@cloudflare/privacypass-ts'
-import {MyVOPRFServer} from "./myServer.js";
 
+import {PSTServer} from "./PSTServer.js";
 
-export interface VOPRFExtraParams {
-    suite: SuiteID;
-    group: Group;
-    Ne: number;
-    Ns: number;
-    Nk: number;
-    hash: HashID;
-    dleqParams: DLEQParams;
-}
-
-
-
-const VOPRF_SUITE = Oprf.Suite.P384_SHA384;
-const VOPRF_GROUP = Oprf.getGroup(VOPRF_SUITE);
-const VOPRF_HASH = Oprf.getHash(VOPRF_SUITE) as HashID;
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-const VOPRF_EXTRA_PARAMS: VOPRFExtraParams = {
-    suite: VOPRF_SUITE,
-    group: VOPRF_GROUP,
-    Ne: VOPRF_GROUP.eltSize(false),
-    Ns: VOPRF_GROUP.scalarSize(),
-    // Nk: Oprf.getOprfSize(VOPRF_SUITE),
-    Nk: 64,
-    hash: VOPRF_HASH,
-
-    dleqParams: {
-        gg: VOPRF_GROUP,
-        hashID: VOPRF_HASH,
-        // @ts-ignore
-        hash: Oprf.Crypto.hash,
-        // @ts-ignore
-        dst: '',
-    },
-} as const;
-
-export const VOPRF: Readonly<TokenTypeEntry> & VOPRFExtraParams = {
-    value: 0x0001,
-    name: 'VOPRF (P-384, SHA-384)',
-    Nid: 32,
-    publicVerifiable: false,
-    publicMetadata: false,
-    privateMetadata: false,
-    ...VOPRF_EXTRA_PARAMS,
-} as const;
 
 export class IssueRequest {
 
@@ -85,6 +30,8 @@ export class IssueRequest {
         }
     }
 
+    // TODO create deserialize that received base64 as input
+
     static deserialize(bytes: Uint8Array): IssueRequest {
         let offset = 0;
         const input = new DataView(bytes.buffer);
@@ -93,7 +40,6 @@ export class IssueRequest {
         console.log(`Issue Count: ${issue_count}`);
         offset += 2;
 
-        // const blindedMsg = new Uint8Array(input.buffer.slice(offset, offset + input.byteLength));
         const blindedMsg = new Uint8Array(input.buffer.slice(offset, input.byteLength));
         console.log(`blindedMsg: (${blindedMsg.length}) ${blindedMsg}`);
 
@@ -130,11 +76,11 @@ export class IssueResponse {
         public readonly signedNonce: Uint8Array,
         public readonly evaluateProof: Uint8Array,
     ) {
-        if (signedNonce.length !== VOPRF.Ne ) {
-            console.log(`Length ${signedNonce.length}, Ne ${VOPRF.Ne}`);
+        if (signedNonce.length !== PSTServer.Ne ) {
+            console.log(`Length ${signedNonce.length}, Ne ${PSTServer.Ne}`);
             throw new Error('evaluate_msg has invalid size');
         }
-        if (evaluateProof.length !== 2 * VOPRF.Ns) {
+        if (evaluateProof.length !== 2 * PSTServer.Ns) {
             throw new Error('evaluate_proof has invalid size');
         }
     }
@@ -148,9 +94,9 @@ export class IssueResponse {
         const keyID = (new DataView(bytes.buffer)).getUint32(offset, false);
         offset += 4;
         console.log(`KeyID: ${keyID}`);
-        const signedNonce = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
-        offset += VOPRF.Ne;
-        const evaluateProof = new Uint8Array(bytes.slice(offset, offset + 2 * VOPRF.Ns));
+        const signedNonce = new Uint8Array(bytes.slice(offset, offset + PSTServer.Ne));
+        offset += PSTServer.Ne;
+        const evaluateProof = new Uint8Array(bytes.slice(offset, offset + 2 * PSTServer.Ns));
         return new IssueResponse(issued, keyID, signedNonce, evaluateProof);
     }
 
@@ -196,7 +142,7 @@ export function prependKeyID(keyID: number, byteArray: Uint8Array) {
     return new Uint8Array(resultBuffer);
 }
 
-export function generatePublicKey(id: SuiteID, privateKey: Uint8Array) {
+export async function generatePublicKey(id: SuiteID, privateKey: Uint8Array) {
     const gg = Oprf.getGroup(id);
     const priv = gg.desScalar(privateKey);
     const pub = gg.mulGen(priv);
@@ -206,8 +152,8 @@ export function generatePublicKey(id: SuiteID, privateKey: Uint8Array) {
 
 export function keyGenWithID(keyID: number): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
     return new Promise(async (resolve) => {
-        const privateKey = await randomPrivateKey(VOPRF.suite);
-        const publicKey = await generatePublicKey(VOPRF.suite, privateKey);
+        const privateKey = await randomPrivateKey(PSTServer.PST_SUITE);
+        const publicKey = await generatePublicKey(PSTServer.PST_SUITE, privateKey);
         const privateKeyWithID = prependKeyID(keyID, privateKey);
         const publicKeyWithID = prependKeyID(keyID, publicKey);
         resolve({ privateKey: privateKeyWithID, publicKey: publicKeyWithID });
@@ -224,7 +170,23 @@ export class PSTIssuer {
         public keys: { publicKey: Uint8Array; privateKey: Uint8Array; expiry: number }[]
     ) {}
 
-    findServerByKeyID(keyID: number): VOPRFServer {
+    // findServerByKeyID(keyID: number): VOPRFServer {
+    //     const keyInfo = this.keys.find(({ privateKey }) => {
+    //         const extractedKeyID = extractKeyID(privateKey);
+    //         return extractedKeyID === keyID;
+    //     });
+    //     if (keyInfo) {
+    //         const { privateKey } = keyInfo;
+    //         const original_key = extractOriginalKey(privateKey);
+    //
+    //         return new VOPRFServer(VOPRF.suite, original_key);
+    //     }
+    //     else {
+    //         throw new Error(`Invalid keyID`);
+    //     }
+    // }
+
+    findPSTServerByKeyID(keyID: number): PSTServer {
         const keyInfo = this.keys.find(({ privateKey }) => {
             const extractedKeyID = extractKeyID(privateKey);
             return extractedKeyID === keyID;
@@ -233,51 +195,35 @@ export class PSTIssuer {
             const { privateKey } = keyInfo;
             const original_key = extractOriginalKey(privateKey);
 
-            return new VOPRFServer(VOPRF.suite, original_key);
+            return new PSTServer(PSTServer.PST_SUITE, original_key);
         }
         else {
             throw new Error(`Invalid keyID`);
         }
     }
 
-    findMyServerByKeyID(keyID: number): MyVOPRFServer {
-        const keyInfo = this.keys.find(({ privateKey }) => {
-            const extractedKeyID = extractKeyID(privateKey);
-            return extractedKeyID === keyID;
-        });
-        if (keyInfo) {
-            const { privateKey } = keyInfo;
-            const original_key = extractOriginalKey(privateKey);
-
-            return new MyVOPRFServer(VOPRF.suite, original_key);
-        }
-        else {
-            throw new Error(`Invalid keyID`);
-        }
-    }
-
-    findClientByKeyID(keyID: number): VOPRFClient {
-        const keyInfo = this.keys.find(({ publicKey }) => {
-            const extractedKeyID = extractKeyID(publicKey);
-            return extractedKeyID === keyID;
-        });
-        if (keyInfo) {
-            const { publicKey } = keyInfo;
-            const original_key = extractOriginalKey(publicKey);
-
-            return new VOPRFClient(VOPRF.suite, original_key);
-        }
-        else {
-            throw new Error(`Invalid keyID`);
-        }
-    }
+    // findClientByKeyID(keyID: number): VOPRFClient {
+    //     const keyInfo = this.keys.find(({ publicKey }) => {
+    //         const extractedKeyID = extractKeyID(publicKey);
+    //         return extractedKeyID === keyID;
+    //     });
+    //     if (keyInfo) {
+    //         const { publicKey } = keyInfo;
+    //         const original_key = extractOriginalKey(publicKey);
+    //
+    //         return new VOPRFClient(VOPRF.suite, original_key);
+    //     }
+    //     else {
+    //         throw new Error(`Invalid keyID`);
+    //     }
+    // }
 
     async issue(tokReq: IssueRequest): Promise<IssueResponse> {
         console.log(`Total Keys: ${this.keys.length}`);
         const randomIndex = Math.floor(Math.random() * this.keys.length) + 1;
         console.log(`Key Selected: ${randomIndex}`);
-        const server = this.findServerByKeyID(randomIndex);
-        const blindedElt = VOPRF.group.desElt(tokReq.blindedMsg);
+        const server = this.findPSTServerByKeyID(randomIndex);
+        const blindedElt = PSTServer.PST_GROUP.desElt(tokReq.blindedMsg);
         const evalReq = new EvaluationRequest([blindedElt]);
         const evaluation = await server.blindEvaluate(evalReq);
 
@@ -294,7 +240,6 @@ export class PSTIssuer {
 
         const evaluateProof = evaluation.proof.serialize();
 
-        // return new IssueResponse(1, randomIndex, evaluateMsg, evaluateProof);
         return new IssueResponse(1, randomIndex, evaluateMsg, evaluateProof);
     }
 
@@ -329,6 +274,8 @@ export class RedeemerRequest {
         public readonly ecPointW: Uint8Array,
         public readonly clientData: Uint8Array) {}
 
+    // TODO create deserialize that receives base64 as input
+
     static deserialize(bytes: Uint8Array): RedeemerRequest {
         console.log('Deserializing RedeemerRequest');
         // size of token is 241
@@ -348,11 +295,9 @@ export class RedeemerRequest {
         console.log(`offset: ${offset} - nonce: ${nonce.slice(0, 4)} - size: ${nonce.length}`);
         offset += 64;
 
-        // const ecPointW = new Uint8Array(bytes.slice(offset, offset + 96));
-        const ecPointW = new Uint8Array(bytes.slice(offset, offset + VOPRF.Ne));
+        const ecPointW = new Uint8Array(bytes.slice(offset, offset + PSTServer.Ne));
         console.log(`offset: ${offset} - ecPointW: ${ecPointW.slice(0, 4)} - size: ${ecPointW.length}`);
-        // offset = tokenSize+2; // must be +2 because of the first 2 bytes on the 'bytes' data
-        offset += VOPRF.Ne;
+        offset += PSTServer.Ne;
 
         const clientDataSize = new DataView(bytes.buffer).getUint16(offset, false);
         console.log(`offset: ${offset} - Client Data Size: ${clientDataSize}`);
@@ -363,11 +308,6 @@ export class RedeemerRequest {
         return new RedeemerRequest(keyId, nonce, ecPointW, clientData);
     }
 
-    // serialize(): Uint8Array {
-    //     const output = new Uint8Array();
-    //
-    //     return output;
-    // }
 }
 
 
@@ -413,31 +353,16 @@ export class PSTRedeemer {
 
         let validated = false;
 
-        // const server = issuer.findServerByKeyID(tokReq.keyId);
-        const server = issuer.findMyServerByKeyID(tokReq.keyId);
+        const server = issuer.findPSTServerByKeyID(tokReq.keyId);
 
         try {
             // Hash nonce into an elliptic curve group element
             let inputElement = await server.evaluate(tokReq.nonce);
 
-            const point = VOPRF.group.desElt(tokReq.ecPointW);
+            const point = PSTServer.PST_GROUP.desElt(tokReq.ecPointW);
             const compressedPoint = point.serialize(true)
 
-            // Compare issued element with client's W value
-            // if (!Buffer.from(inputElement).equals(Buffer.from(compressedPoint))) {
-            //     throw new Error('InvalidInputError: Issued element does not match client\'s W value');
-            // }
-
             validated = Buffer.from(inputElement).equals(Buffer.from(compressedPoint));
-            // Construct redemption record based on client_data
-            // const redemptionRecord = {
-            //     timestamp: Date.now(),
-            //     clientData: tokReq.clientData,
-            //     validated: true
-            //     // Add other fields as needed for your application
-            // };
-            //
-            // return redemptionRecord;
         } catch (e: any) {
             console.error(e);
             throw e;

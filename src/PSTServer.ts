@@ -1,7 +1,16 @@
-import {Oprf, type SuiteID, VOPRFServer} from "@cloudflare/voprf-ts";
+import {type HashID, Oprf, type SuiteID, VOPRFServer} from "@cloudflare/voprf-ts";
 import type {CryptoProviderArg} from "@cloudflare/voprf-ts/lib/cjs/src/cryptoImpl";
 
-export class MyVOPRFServer extends VOPRFServer {
+export class PSTServer extends VOPRFServer {
+
+    public static readonly PST_SUITE = Oprf.Suite.P384_SHA384;
+    public static readonly PST_GROUP = Oprf.getGroup(this.PST_SUITE);
+    public static readonly PST_HASH = Oprf.getHash(this.PST_SUITE) as HashID;
+
+    public static readonly Ne = this.PST_GROUP.eltSize(false);
+    public static readonly Ns = this.PST_GROUP.scalarSize();
+
+
     constructor(suite: SuiteID, privateKey: Uint8Array, ...arg: CryptoProviderArg) {
         super(suite, privateKey, ...arg);
     }
