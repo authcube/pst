@@ -81,10 +81,70 @@ npm run build
 - [CloudFlare - VOPRF TypeScript Library](https://github.com/cloudflare/voprf-ts)
 
 
-## TO-DO
+## How to use this library
 
+### Token Issuance
+To issue a token, you must check for the request header `sec-private-state-token`, after verify it is present and it is not null or empty you can call use the Issuer class like the code bellow:
+
+```typescript
+
+const sec_private_state_token = req.headers["sec-private-state-token"] as string;
+if (sec_private_state_token && !sec_private_state_token.match(BASE64FORMAT)) {
+    return res.sendStatus(400);
+}
+
+try {
+    const token = await issuer.issueToken(sec_private_state_token);
+
+    res.statusCode = 200
+    res.setHeader('Content-Type', "text/html")
+    res.append("sec-private-state-token", token);
+    res.setHeader('Sec-Private-State-Token', token)
+    res.write("Issuing tokens.")
+    res.send();
+
+    return res.end();
+} catch (e: any) {
+    // deal with the error as you see fit
+    console.error("Error issuing PST", e);
+    return res.sendStatus(500);
+}
+
+```
+
+### Token Redeemption
+
+To redeem an issued token the process is similar, your endpoint must check for the request header `sec-private-state-token`, if it is present and it is not null or empty you can proceed to the redeemption
+
+```typescript
+try {
+    const redemptionToken = req.headers["sec-private-state-token"] as string;
+
+    if (redemptionToken && !redemptionToken.match(BASE64FORMAT)) {
+        return res.sendStatus(400);
+    }
+
+    const redeemer = new PSTRedeemer();
+    const issuer = await getIssuer();
+
+    const resToken = await redeemer.redeemToken(redemptionToken, issuer);
+
+    res.statusCode = 200;
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.append("sec-private-state-token", resToken);
+    res.write("Token redeemed.");
+        return res.send();
+} catch (e) {
+    // deal with the error as you see fit
+    console.error(`Error on redemption: ${e}`);
+    return res.sendStatus(500);
+}
+```
+
+
+## To-do
 - Library
-  - Implement Token Issuance
+  - Token Issuance
   - Implement Token Redemption
 - Example
   - Issuance Endpoint

@@ -218,6 +218,16 @@ export class PSTIssuer {
     //     }
     // }
 
+    async issueToken(encodedToken: string): Promise<string> {
+
+        const decodedToken = Uint8Array.from(Buffer.from(encodedToken, 'base64'));
+        const tokReq = IssueRequest.deserialize(decodedToken);
+        const tokRes = await this.issue(tokReq);
+        const tokResSerialized = tokRes.serialize();
+        return Buffer.from(tokResSerialized).toString('base64');
+
+    }
+
     async issue(tokReq: IssueRequest): Promise<IssueResponse> {
         console.log(`Total Keys: ${this.keys.length}`);
         const randomIndex = Math.floor(Math.random() * this.keys.length) + 1;
@@ -274,8 +284,6 @@ export class RedeemerRequest {
         public readonly ecPointW: Uint8Array,
         public readonly clientData: Uint8Array) {}
 
-    // TODO create deserialize that receives base64 as input
-
     static deserialize(bytes: Uint8Array): RedeemerRequest {
         console.log('Deserializing RedeemerRequest');
         // size of token is 241
@@ -284,27 +292,27 @@ export class RedeemerRequest {
         let offset = 0;
 
         const tokenSize = new DataView(bytes.buffer).getUint16(offset, false);
-        console.log(`offset: ${offset} - Token Size: ${tokenSize}`);
+        console.debug(`offset: ${offset} - Token Size: ${tokenSize}`);
         offset += 2;
 
         const keyId = new DataView(bytes.buffer).getUint32(offset, false);
-        console.log(`offset: ${offset} - keyId: ${keyId}`);
+        console.debug(`offset: ${offset} - keyId: ${keyId}`);
         offset += 4;
 
         const nonce = new Uint8Array(bytes.slice(offset, offset + 64));
-        console.log(`offset: ${offset} - nonce: ${nonce.slice(0, 4)} - size: ${nonce.length}`);
+        console.debug(`offset: ${offset} - nonce: ${nonce.slice(0, 4)} - size: ${nonce.length}`);
         offset += 64;
 
         const ecPointW = new Uint8Array(bytes.slice(offset, offset + PSTServer.Ne));
-        console.log(`offset: ${offset} - ecPointW: ${ecPointW.slice(0, 4)} - size: ${ecPointW.length}`);
+        console.debug(`offset: ${offset} - ecPointW: ${ecPointW.slice(0, 4)} - size: ${ecPointW.length}`);
         offset += PSTServer.Ne;
 
         const clientDataSize = new DataView(bytes.buffer).getUint16(offset, false);
-        console.log(`offset: ${offset} - Client Data Size: ${clientDataSize}`);
+        console.debug(`offset: ${offset} - Client Data Size: ${clientDataSize}`);
 
         offset += 2;
         const clientData = new Uint8Array(bytes.buffer, offset, clientDataSize); // last byte index is 240
-        console.log(`offset: ${offset} - Client Data: ${clientData}`);
+        console.debug(`offset: ${offset} - Client Data: ${clientData}`);
         return new RedeemerRequest(keyId, nonce, ecPointW, clientData);
     }
 
@@ -349,6 +357,22 @@ export class PSTRedeemer {
     constructor(
     ) {}
 
+    async redeemToken(tokenToRedeem: string, issuer: PSTIssuer): Promise<string> {
+
+        try {
+            const decodedToken = Uint8Array.from(Buffer.from(tokenToRedeem, 'base64'));
+            const tokReq = RedeemerRequest.deserialize(decodedToken);
+            let redeemRes = await this.redeem(tokReq, issuer);
+
+            return Buffer.from(redeemRes.serialize()).toString('base64');
+        } catch (e: any) {
+            console.error("Error trying to redeem token", e);
+            throw Error("Error trying to redeem token", e);
+        }
+
+
+    }
+
     async redeem(tokReq: RedeemerRequest, issuer: PSTIssuer) {
 
         let validated = false;
@@ -367,8 +391,6 @@ export class PSTRedeemer {
             console.error(e);
             throw e;
         }
-
-        // TODO remove verifyFinalize
 
         return new RedeemerResponse(tokReq.keyId, tokReq.clientData, validated, Date.now());
     }

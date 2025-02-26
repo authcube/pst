@@ -1,6 +1,6 @@
 
 import express from 'express';
-import {PSTIssuer, keyGenWithID, IssueRequest, RedeemerRequest, PSTRedeemer} from "../src";
+import {PSTIssuer, keyGenWithID, /*IssueRequest, RedeemerRequest,*/ PSTRedeemer} from "../src/index.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -82,30 +82,31 @@ app.get(`/private-state-token/issuance`, async (req, res) => {
         return res.sendStatus(400);
     }
 
-    if (sec_private_state_token) {
-        const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
-        const tokReq = IssueRequest.deserialize(decodedToken);
-        const tokRes = await issuer.issue(tokReq);
-        const tokResSerialized = tokRes.serialize();
-        const token = Buffer.from(tokResSerialized).toString('base64');
+    try {
+        if (sec_private_state_token) {
+            // const decodedToken = Uint8Array.from(Buffer.from(sec_private_state_token, 'base64'));
+            // const tokReq = IssueRequest.deserialize(decodedToken);
+            // const tokRes = await issuer.issue(tokReq);
+            // const tokResSerialized = tokRes.serialize();
+            // const token = Buffer.from(tokResSerialized).toString('base64');
 
+            const token = await issuer.issueToken(sec_private_state_token);
 
-        console.debug(`token serialized: (${tokResSerialized.length}) ${tokResSerialized}`);
-        console.debug(`token response KeyID: ${tokRes.keyID}`);
-        console.debug(`token response Issued: ${tokRes.issued}`);
-        console.debug(`token b64: (${token.length}) ${token}`);
+            res.statusCode = 200
+            res.setHeader('Content-Type', "text/html")
+            res.append("sec-private-state-token", token);
+            res.setHeader('Sec-Private-State-Token', token)
+            res.write("Issuing tokens.")
+            res.send();
 
-        res.statusCode = 200
-        res.setHeader('Content-Type', "text/html")
-        res.append("sec-private-state-token", token);
-        res.setHeader('Sec-Private-State-Token', token)
-        res.write("Issuing tokens.")
-        res.send();
+            return res.end();
 
-        return res.end();
-
+        }
+        return res.sendStatus(400);
+    } catch (e: any) {
+        console.error("Error issuing PST", e);
+        return res.sendStatus(500);
     }
-    return res.sendStatus(400);
 });
 
 app.get("/", async (_, res) => {
@@ -129,16 +130,15 @@ app.get(`/private-state-token/redemption`, async (req, res) => {
         }
 
         if (redemptionToken) {
-            const decodedToken = Uint8Array.from(Buffer.from(redemptionToken, 'base64'));
-            console.debug(`decoded token: ${decodedToken}`);
-            const tokReq = RedeemerRequest.deserialize(decodedToken);
-            console.debug(`token deserialized`);
+            const redeemer = new PSTRedeemer();
+            const issuer = await getIssuer();
 
-            let redeemer = new PSTRedeemer();
-            let issuer = await getIssuer();
-            let redeemRes = await redeemer.redeem(tokReq, issuer);
+            // const decodedToken = Uint8Array.from(Buffer.from(redemptionToken, 'base64'));
+            // const tokReq = RedeemerRequest.deserialize(decodedToken);
+            // let redeemRes = await redeemer.redeem(tokReq, issuer);
+            // const resToken = Buffer.from(redeemRes.serialize()).toString('base64');
 
-            const resToken = Buffer.from(redeemRes.serialize()).toString('base64');
+            const resToken = await redeemer.redeemToken(redemptionToken, issuer);
 
             res.statusCode = 200;
             res.setHeader("Access-Control-Allow-Origin", "*");
