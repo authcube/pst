@@ -94,6 +94,7 @@ if (sec_private_state_token && !sec_private_state_token.match(BASE64FORMAT)) {
 }
 
 try {
+    let issuer = await PSTResources.getIssuer();
     const token = await issuer.issueToken(sec_private_state_token);
 
     res.statusCode = 200
@@ -125,9 +126,8 @@ try {
     }
 
     const redeemer = new PSTRedeemer();
-    const issuer = await getIssuer();
 
-    const resToken = await redeemer.redeemToken(redemptionToken, issuer);
+    const resToken = await redeemer.redeemToken(redemptionToken);
 
     res.statusCode = 200;
     res.setHeader("Access-Control-Allow-Origin", "*");

@@ -18,6 +18,63 @@ import {Buffer} from "buffer";
 
 import {PSTServer} from "./PSTServer.js";
 
+export class PSTResources {
+    private static globalIssuer: PSTIssuer | null = null;
+
+    private static getExpiryByEnv(env: string | undefined): number {
+        if (env) {
+            return parseInt(env, 10);
+        } else {
+            const now = new Date();
+            const timeDelta = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+            return timeDelta.getTime();
+        }
+    }
+
+    private static async getKeyByEnv(privateKeyEnv: string | undefined, publicKeyEnv: string | undefined, counter: number): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
+        if (counter === 1 && (!privateKeyEnv || !publicKeyEnv)) {
+            const { privateKey, publicKey } = await keyGenWithID(counter);
+            return { privateKey, publicKey };
+        } else if (privateKeyEnv && publicKeyEnv) {
+            const privateKey = Uint8Array.from(Buffer.from(privateKeyEnv, 'base64'));
+            const publicKey = Uint8Array.from(Buffer.from(publicKeyEnv, 'base64'));
+            return { privateKey, publicKey };
+        } else {
+            throw new Error(`Invalid combination of counter and key variables for counter ${counter}`);
+        }
+    }
+
+    private static async initializeIssuer(): Promise<PSTIssuer> {
+
+        const keys: Promise<{ privateKey: Uint8Array; publicKey: Uint8Array; expiry: number }>[] = [];
+        for (let i = 1; i <= 6; i++) {
+            const privateKeyEnv = process.env[`PRIVATE_KEY${i}`];
+            const publicKeyEnv = process.env[`PUBLIC_KEY${i}`];
+            const expiryEnv = process.env[`EXPIRY${i}`];
+            if ((privateKeyEnv && publicKeyEnv) || (i === 1 && (!privateKeyEnv || !publicKeyEnv))) {
+                keys.push(
+                    this.getKeyByEnv(privateKeyEnv, publicKeyEnv, i).then((result) => ({
+                        ...result,
+                        expiry: this.getExpiryByEnv(expiryEnv),
+                    }))
+                );
+                console.log(`Loaded private key ${i} -> ${privateKeyEnv}`);
+                console.log(`Loaded public key ${i} -> ${publicKeyEnv}`);
+                console.log(`Loaded expiry key ${i} -> ${expiryEnv}`);
+            }
+        }
+        const resolvedKeys = await Promise.all(keys);
+        return new PSTIssuer(resolvedKeys);
+    }
+
+    public static async getIssuer() {
+        if (!this.globalIssuer) {
+            this.globalIssuer = await this.initializeIssuer();
+        }
+        return this.globalIssuer;
+    }
+}
+
 
 export class IssueRequest {
 
@@ -357,9 +414,10 @@ export class PSTRedeemer {
     constructor(
     ) {}
 
-    async redeemToken(tokenToRedeem: string, issuer: PSTIssuer): Promise<string> {
+    async redeemToken(tokenToRedeem: string): Promise<string> {
 
         try {
+            const issuer = await PSTResources.getIssuer();
             const decodedToken = Uint8Array.from(Buffer.from(tokenToRedeem, 'base64'));
             const tokReq = RedeemerRequest.deserialize(decodedToken);
             let redeemRes = await this.redeem(tokReq, issuer);
