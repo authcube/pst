@@ -1,5 +1,7 @@
 import {type HashID, Oprf, type SuiteID, VOPRFServer} from "@cloudflare/voprf-ts";
-import type {CryptoProviderArg} from "@cloudflare/voprf-ts/lib/cjs/src/cryptoImpl";
+// @ts-ignore
+import type { CryptoProviderArg } from "@cloudflare/voprf-ts/lib/cjs/src/cryptoImpl";
+
 
 export class PSTServer extends VOPRFServer {
 
