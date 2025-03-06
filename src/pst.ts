@@ -45,27 +45,38 @@ export class PSTResources {
     }
 
     private static async initializeIssuer(): Promise<PSTIssuer> {
-
         const keys: Promise<{ privateKey: Uint8Array; publicKey: Uint8Array; expiry: number }>[] = [];
+
         for (let i = 1; i <= 6; i++) {
             const privateKeyEnv = process.env[`PRIVATE_KEY${i}`];
             const publicKeyEnv = process.env[`PUBLIC_KEY${i}`];
             const expiryEnv = process.env[`EXPIRY${i}`];
-            if ((privateKeyEnv && publicKeyEnv) || (i === 1 && (!privateKeyEnv || !publicKeyEnv))) {
-                keys.push(
-                    this.getKeyByEnv(privateKeyEnv, publicKeyEnv, i).then((result) => ({
-                        ...result,
-                        expiry: this.getExpiryByEnv(expiryEnv),
-                    }))
-                );
-                console.log(`Loaded private key ${i} -> ${privateKeyEnv}`);
-                console.log(`Loaded public key ${i} -> ${publicKeyEnv}`);
-                console.log(`Loaded expiry key ${i} -> ${expiryEnv}`);
+
+            if (!privateKeyEnv || !publicKeyEnv) {
+                if (i === 1) {
+                    throw new Error(`Critical: PRIVATE_KEY1 or PUBLIC_KEY1 environment variables not set.`);
+                } else {
+                    console.warn(`Skipping key pair ${i}: environment variables not fully set.`);
+                    continue;
+                }
             }
+
+            keys.push(
+                this.getKeyByEnv(privateKeyEnv, publicKeyEnv, i).then((result) => ({
+                    ...result,
+                    expiry: this.getExpiryByEnv(expiryEnv),
+                }))
+            );
+
+            console.log(`Loaded private key ${i} -> ${privateKeyEnv}`);
+            console.log(`Loaded public key ${i} -> ${publicKeyEnv}`);
+            console.log(`Loaded expiry key ${i} -> ${expiryEnv}`);
         }
+
         const resolvedKeys = await Promise.all(keys);
         return new PSTIssuer(resolvedKeys);
     }
+
 
     public static async getIssuer() {
         if (!this.globalIssuer) {
@@ -268,7 +279,7 @@ export class PSTIssuer {
     //         const { publicKey } = keyInfo;
     //         const original_key = extractOriginalKey(publicKey);
     //
-    //         return new VOPRFClient(VOPRF.suite, original_key);
+    //         return new VOPRFClient(PSTServer.PST_SUITE, original_key);
     //     }
     //     else {
     //         throw new Error(`Invalid keyID`);
@@ -421,6 +432,11 @@ export class PSTRedeemer {
             const decodedToken = Uint8Array.from(Buffer.from(tokenToRedeem, 'base64'));
             const tokReq = RedeemerRequest.deserialize(decodedToken);
             let redeemRes = await this.redeem(tokReq, issuer);
+
+            // TODO should throw an error if validate=false ?
+            // if ( ! redeemRes.validated ) {
+            //     throw Error("Redemption Request is Invalid");
+            // }
 
             return Buffer.from(redeemRes.serialize()).toString('base64');
         } catch (e: any) {
