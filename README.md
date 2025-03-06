@@ -2,7 +2,6 @@
 
 Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)
 
-
 ## Install Dependencies and Build
 
 ```
@@ -10,65 +9,64 @@ npm install
 npm run build
 ```
 
-
 ## Sample Issuer
 
-  > Sample has been built using Express Library
+> Sample has been built using Express Library
 
-  - Start Sample Server
-  
+- Start Sample Server
+
+  ```
+  npm run example
+  ```
+
+- Running with Docker
+
+  - build
     ```
-    npm run example
+    docker-compose build
     ```
-  
-  - Running with Docker
-  
-    - build
-      ```
-      docker-compose build
-      ```
-    
-    - start
-      ```
-      docker-compose up
-      ```
-    
+  - start
+    ```
+    docker-compose up
+    ```
+
 #### Running with Static Key-Pair and Expiration
-  - Generate up to 6 KeyPairs
 
-    ```
-    node bin/voprf_gen_keys.cjs 1
-    node bin/voprf_gen_keys.cjs 2
-    # Keep creating until node bin/voprf_gen_keys.cjs 6
-    ```
+- Generate up to 6 KeyPairs
 
-  - Export Keys as Environment Variables 
+  ```
+  node bin/voprf_gen_keys.cjs 1
+  node bin/voprf_gen_keys.cjs 2
+  # Keep creating until node bin/voprf_gen_keys.cjs 6
+  ```
 
-    ```
-    export PRIVATE_KEY1=<BASE64 PRIVATE KEY 1 GENERATED PREVIOUSLY>
-    export PUBLIC_KEY1=<BASE64 PUBLIC KEY 1 GENERATED PREVIOUSLY>
-    export PRIVATE_KEY2=<BASE64 PRIVATE KEY 2 GENERATED PREVIOUSLY>
-    export PUBLIC_KEY2=<BASE64 PUBLIC KEY 2 GENERATED PREVIOUSLY>
-    # Keep defining until PRIVATE_KEY6 and PUBLIC_KEY6
-    ```
+- Export Keys as Environment Variables
 
-  - Export Key Expiration as Environment Variable
+  ```
+  export PRIVATE_KEY1=<BASE64 PRIVATE KEY 1 GENERATED PREVIOUSLY>
+  export PUBLIC_KEY1=<BASE64 PUBLIC KEY 1 GENERATED PREVIOUSLY>
+  export PRIVATE_KEY2=<BASE64 PRIVATE KEY 2 GENERATED PREVIOUSLY>
+  export PUBLIC_KEY2=<BASE64 PUBLIC KEY 2 GENERATED PREVIOUSLY>
+  # Keep defining until PRIVATE_KEY6 and PUBLIC_KEY6
+  ```
 
-    ```
-    export EXPIRY1=1709509052048
-    export EXPIRY2=1709994102048
-    # Keep defining until EXPIRY6
-    ```
-    
+- Export Key Expiration as Environment Variable
+
+  ```
+  export EXPIRY1=1709509052048
+  export EXPIRY2=1709994102048
+  # Keep defining until EXPIRY6
+  ```
+
 > If running with **Docker** define those variables in docker-compose.yaml or -e argument for docker inline
-    
+
 ### Endpoints
 
-  - Key Commitment Endpoint
-    
-    ```
-    curl http://localhost:3000/.well-known/trust-token/key-commitment
-    ```
+- Key Commitment Endpoint
+
+  ```
+  curl http://localhost:3000/.well-known/trust-token/key-commitment
+  ```
 
 ## Resources, Libraries and Specs:
 
@@ -80,38 +78,39 @@ npm run build
 - [CloudFlare - Privacy Pass TypeScript Library](https://github.com/cloudflare/privacypass-ts/)
 - [CloudFlare - VOPRF TypeScript Library](https://github.com/cloudflare/voprf-ts)
 
-
 ## How to use this library
 
 ### Token Issuance
+
 To issue a token, you must check for the request header `sec-private-state-token`, after verify it is present and it is not null or empty you can call use the Issuer class like the code bellow:
 
 ```typescript
 import { PSTRedeemer, PSTResources } from "@sec4you/pst";
 
-const sec_private_state_token = req.headers["sec-private-state-token"] as string;
+const sec_private_state_token = req.headers[
+  "sec-private-state-token"
+] as string;
 if (sec_private_state_token && !sec_private_state_token.match(BASE64FORMAT)) {
-    return res.sendStatus(400);
+  return res.sendStatus(400);
 }
 
 try {
-    let issuer = await PSTResources.getIssuer();
-    const token = await issuer.issueToken(sec_private_state_token);
+  let issuer = await PSTResources.getIssuer();
+  const token = await issuer.issueToken(sec_private_state_token);
 
-    res.statusCode = 200
-    res.setHeader('Content-Type', "text/html")
-    res.append("sec-private-state-token", token);
-    res.setHeader('Sec-Private-State-Token', token)
-    res.write("Issuing tokens.")
-    res.send();
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/html");
+  res.append("sec-private-state-token", token);
+  res.setHeader("Sec-Private-State-Token", token);
+  res.write("Issuing tokens.");
+  res.send();
 
-    return res.end();
+  return res.end();
 } catch (e: any) {
-    // deal with the error as you see fit
-    console.error("Error issuing PST", e);
-    return res.sendStatus(500);
+  // deal with the error as you see fit
+  console.error("Error issuing PST", e);
+  return res.sendStatus(500);
 }
-
 ```
 
 ### Token Redeemption
@@ -122,33 +121,26 @@ To redeem an issued token the process is similar, your endpoint must check for t
 import { PSTRedeemer, PSTResources } from "@sec4you/pst";
 
 try {
-    const redemptionToken = req.headers["sec-private-state-token"] as string;
+  const redemptionToken = req.headers["sec-private-state-token"] as string;
 
-    if (redemptionToken && !redemptionToken.match(BASE64FORMAT)) {
-        return res.sendStatus(400);
-    }
+  if (redemptionToken && !redemptionToken.match(BASE64FORMAT)) {
+    return res.sendStatus(400);
+  }
 
-    const redeemer = new PSTRedeemer();
+  const redeemer = new PSTRedeemer();
 
-    const resToken = await redeemer.redeemToken(redemptionToken);
+  const resToken = await redeemer.redeemToken(redemptionToken);
 
-    res.statusCode = 200;
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.append("sec-private-state-token", resToken);
-    res.write("Token redeemed.");
-    return res.send();
+  res.statusCode = 200;
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.append("sec-private-state-token", resToken);
+  res.write("Token redeemed.");
+  return res.send();
 } catch (e) {
-    // deal with the error as you see fit
-    console.error(`Error on redemption: ${e}`);
-    return res.sendStatus(500);
+  // deal with the error as you see fit
+  console.error(`Error on redemption: ${e}`);
+  return res.sendStatus(500);
 }
 ```
 
 
-## To-do
-- Library
-  - Token Issuance
-  - Implement Token Redemption
-- Example
-  - Issuance Endpoint
-  - Redemption Endpoint

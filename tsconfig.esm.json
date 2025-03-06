@@ -6,5 +6,6 @@
     "outDir": "dist/esm",
     "declaration": true,
     "sourceMap": true
-  }
+  },
+  "exclude": ["src/test/**/*"]
 }
