@@ -1,12 +1,18 @@
 {
   "name": "@sec4you/pst",
-  "version": "1.1.0",
+  "version": "1.1.3",
   "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
-  "main": "./lib/src/index.js",
-  "module": "./lib/src/index.js",
-  "types": "./lib/src/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
-    "lib/src/**/*.!(tsbuildinfo)"
+    "dist",
+    "!dist/**/*.tsbuildinfo"
   ],
   "homepage": "https://github.com/sec4you/pst",
   "repository": "github:sec4you/pst",
@@ -15,7 +21,11 @@
   },
   "scripts": {
     "example": "tsc -b example; node ./lib/example/index.js",
-    "build": "tsc -b"
+    "build_tsc": "tsc -b",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build": "npm run build:esm",
+    "clean": "rm -rf ./dist",
+    "test": "tsx ./src/test/pst.test.ts"
   },
   "type": "module",
   "keywords": [
@@ -26,24 +36,26 @@
     "trust-tokens"
   ],
   "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
+  "maintainers": ["aechiara <aechiara@gmail.com>"],
   "contributors": [
     "chulao <juliano.lao@sec4you.com.br>",
     "brfso <fernando.oliveira@sec4you.com.br>",
-    "aechiara <alex.chiaranda@sec4you.com.br>",
     "thiagodiogo <thiagodiogo@google.com>",
     "isabelcurado <curado@google.com>"
   ],
   "dependencies": {
     "@cloudflare/privacypass-ts": "^0.4.0",
-    "@cloudflare/voprf-ts": "^0.21.2",
+    "@cloudflare/voprf-ts": "^1.0.0",
+    "cors": "^2.8.5",
     "ejs": "^3.1.9",
-    "express": "^4.18.2",
+    "express": "5.0.0",
     "structured-field-values": "^2.0.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/node": "^20.10.5",
+    "@types/node": "^20.17.23",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.3.3"
   }
 }

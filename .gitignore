@@ -1,6 +1,7 @@
 # Node.js
 node_modules/
 lib/
+certs/
 
 # Logs
 logs/
@@ -48,3 +49,8 @@ yarn-error.log
 # Windows
 Thumbs.db
 Desktop.ini
+/dist/
+
+
+# Ignore TypeScript incremental build info files
+*.tsbuildinfo
