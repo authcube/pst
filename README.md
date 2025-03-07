@@ -2,6 +2,11 @@
 
 Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)
 
+This library depends on [Cloudflare's voprf-ts](https://github.com/cloudflare/voprf-ts) tested implementation to compute the Scalars and transformations. 
+
+# Security Disclaimer
+🚨 This library is offered as-is, and without a guarantee. Therefore, it is expected that changes in the code, repository, and API occur in the future. We recommend to take caution before using this library in a production application since part of its content is experimental. All security issues must be reported, please notify us immediately.
+
 ## Install Dependencies and Build
 
 ```
@@ -82,7 +87,7 @@ npm run build
 
 ### Token Issuance
 
-To issue a token, you must check for the request header `sec-private-state-token`, after verify it is present and it is not null or empty you can call use the Issuer class like the code bellow:
+To issue a token, you must check for the request header `sec-private-state-token`, after verify it is present and it is not null or empty you can use the Issuer class like the code bellow:
 
 ```typescript
 import { PSTRedeemer, PSTResources } from "@sec4you/pst";
