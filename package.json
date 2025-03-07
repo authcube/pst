@@ -36,8 +36,8 @@
     "trust-tokens"
   ],
   "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
+  "maintainers": ["aechiara <aechiara@gmail.com>"],
   "contributors": [
-    "aechiara <alex.chiaranda@sec4you.com.br>",
     "chulao <juliano.lao@sec4you.com.br>",
     "brfso <fernando.oliveira@sec4you.com.br>",
     "thiagodiogo <thiagodiogo@google.com>",
