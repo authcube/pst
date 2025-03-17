@@ -134,6 +134,7 @@ try {
 
   const redeemer = new PSTRedeemer();
 
+  // This call will throw an Error if the token is invalid
   const resToken = await redeemer.redeemToken(redemptionToken);
 
   res.statusCode = 200;
@@ -144,7 +145,7 @@ try {
 } catch (e) {
   // deal with the error as you see fit
   console.error(`Error on redemption: ${e}`);
-  return res.sendStatus(500);
+  return res.sendStatus(400);
 }
 ```
 
