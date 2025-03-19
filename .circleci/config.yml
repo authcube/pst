@@ -20,7 +20,7 @@ jobs:
           name: "Docker Image Build and Tagging"
           command: |
             export VERSION=$(cat package.json | awk -F '"' '/"version":/ {print $4}')
-            export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
+            export NAME="sec4you/pst"
             wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
             docker build . -t $NAME
             docker tag $NAME $NAME:$VERSION
@@ -35,6 +35,17 @@ jobs:
                 command: |
                   export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
                   docker push $NAME:latest
+  publish:
+    docker:
+      - image: node:20.10.0-bullseye
+    steps:
+      - checkout
+      - run:
+          name: "Upload to NPM"
+          command: |
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+            npm publish --access public
+
 
 workflows:
   version: 2
@@ -44,3 +55,10 @@ workflows:
       - build:
           requires:
             - test
+      - publish:
+          filters:
+            branches:
+              only: master
+          requires:
+            - build
+

@@ -1,7 +1,15 @@
 {
   "name": "@authcube/pst",
   "version": "1.1.4",
-  "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
+  "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
+  "maintainers": ["aechiara <aechiara@gmail.com>"],
+  "contributors": [
+    "aechiara <aechiara@gmail.com>",
+    "chulao <juliano.lao@sec4you.com.br>",
+    "brfso <fernando.oliveira@sec4you.com.br>",
+    "isabelcurado <curado@google.com>"
+  ],
+ "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
   "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +23,14 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "homepage": "https://github.com/authcube/pst",
-  "repository": "github:authcube/pst",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/authcube/pst.git"
+  },
   "engines": {
     "node": ">=20.0.0 <=22.x"
   },
@@ -34,14 +49,6 @@
     "crypto",
     "cryptography",
     "trust-tokens"
-  ],
-  "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
-  "maintainers": ["aechiara <aechiara@gmail.com>"],
-  "contributors": [
-    "aechiara <aechiara@gmail.com>",
-    "chulao <juliano.lao@sec4you.com.br>",
-    "brfso <fernando.oliveira@sec4you.com.br>",
-    "isabelcurado <curado@google.com>"
   ],
   "dependencies": {
     "@cloudflare/privacypass-ts": "^0.4.0",

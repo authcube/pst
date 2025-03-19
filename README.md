@@ -90,7 +90,7 @@ npm run build
 To issue a token, you must check for the request header `sec-private-state-token`, after verify it is present and it is not null or empty you can use the Issuer class like the code bellow:
 
 ```typescript
-import { PSTRedeemer, PSTResources } from "@sec4you/pst";
+import { PSTRedeemer, PSTResources } from "@authcube/pst";
 
 const sec_private_state_token = req.headers[
   "sec-private-state-token"
@@ -123,7 +123,7 @@ try {
 To redeem an issued token the process is similar, your endpoint must check for the request header `sec-private-state-token`, if it is present and it is not null or empty you can proceed to the redeemption
 
 ```typescript
-import { PSTRedeemer, PSTResources } from "@sec4you/pst";
+import { PSTRedeemer, PSTResources } from "@authcube/pst";
 
 try {
   const redemptionToken = req.headers["sec-private-state-token"] as string;
