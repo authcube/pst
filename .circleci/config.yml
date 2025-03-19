@@ -33,7 +33,7 @@ jobs:
             - run:
                 name: "Latest Image Upload"
                 command: |
-                  export NAME=$(cat package.json | awk -F '"' '/"name":/ {print $4}' package.json | sed 's/^@//')
+                  export NAME="sec4you/pst"
                   docker push $NAME:latest
   publish:
     docker:
