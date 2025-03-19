@@ -1,7 +1,15 @@
 {
-  "name": "@sec4you/pst",
-  "version": "1.1.3",
-  "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
+  "name": "@authcube/pst",
+  "version": "1.1.4",
+  "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
+  "maintainers": ["aechiara <aechiara@gmail.com>"],
+  "contributors": [
+    "aechiara <aechiara@gmail.com>",
+    "chulao <juliano.lao@sec4you.com.br>",
+    "brfso <fernando.oliveira@sec4you.com.br>",
+    "isabelcurado <curado@google.com>"
+  ],
+ "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
   "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,10 +22,17 @@
     "dist",
     "!dist/**/*.tsbuildinfo"
   ],
-  "homepage": "https://github.com/sec4you/pst",
-  "repository": "github:sec4you/pst",
+  "homepage": "https://github.com/authcube/pst",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/authcube/pst.git"
+  },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.0.0 <=22.x"
   },
   "scripts": {
     "example": "tsc -b example; node ./lib/example/index.js",
@@ -34,14 +49,6 @@
     "crypto",
     "cryptography",
     "trust-tokens"
-  ],
-  "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
-  "maintainers": ["aechiara <aechiara@gmail.com>"],
-  "contributors": [
-    "chulao <juliano.lao@sec4you.com.br>",
-    "brfso <fernando.oliveira@sec4you.com.br>",
-    "thiagodiogo <thiagodiogo@google.com>",
-    "isabelcurado <curado@google.com>"
   ],
   "dependencies": {
     "@cloudflare/privacypass-ts": "^0.4.0",

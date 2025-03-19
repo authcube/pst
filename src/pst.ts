@@ -98,8 +98,6 @@ export class IssueRequest {
         }
     }
 
-    // TODO create deserialize that received base64 as input
-
     static deserialize(bytes: Uint8Array): IssueRequest {
         let offset = 0;
         const input = new DataView(bytes.buffer);
@@ -130,14 +128,7 @@ export class IssueRequest {
 
 
 export class IssueResponse {
-  /*
-        struct {
-          uint16 issued;
-          uint32 key_id;
-          signedNonce signed[issued];
-          opaque proof<1..2^16-1>; // Bytestring containing a serialized DLEQProof struct.
-        } IssueResponse;
-   */
+
     constructor(
         public readonly issued: number,
         public readonly keyID: number,
@@ -153,6 +144,16 @@ export class IssueResponse {
         }
     }
 
+    /*
+          This is the layout (in C) for the response for a IssueRequest (from the documentation)
+
+          struct {
+            uint16 issued;
+            uint32 key_id;
+            signedNonce signed[issued];
+            opaque proof<1..2^16-1>; // Bytestring containing a serialized DLEQProof struct.
+          } IssueResponse;
+     */
     static deserialize(bytes: Uint8Array): IssueResponse {
         console.log('Deserializing IssueResponse');
         let offset = 0;
@@ -238,22 +239,6 @@ export class PSTIssuer {
         public keys: { publicKey: Uint8Array; privateKey: Uint8Array; expiry: number }[]
     ) {}
 
-    // findServerByKeyID(keyID: number): VOPRFServer {
-    //     const keyInfo = this.keys.find(({ privateKey }) => {
-    //         const extractedKeyID = extractKeyID(privateKey);
-    //         return extractedKeyID === keyID;
-    //     });
-    //     if (keyInfo) {
-    //         const { privateKey } = keyInfo;
-    //         const original_key = extractOriginalKey(privateKey);
-    //
-    //         return new VOPRFServer(VOPRF.suite, original_key);
-    //     }
-    //     else {
-    //         throw new Error(`Invalid keyID`);
-    //     }
-    // }
-
     findPSTServerByKeyID(keyID: number): PSTServer {
         const keyInfo = this.keys.find(({ privateKey }) => {
             const extractedKeyID = extractKeyID(privateKey);
@@ -269,22 +254,6 @@ export class PSTIssuer {
             throw new Error(`Invalid keyID`);
         }
     }
-
-    // findClientByKeyID(keyID: number): VOPRFClient {
-    //     const keyInfo = this.keys.find(({ publicKey }) => {
-    //         const extractedKeyID = extractKeyID(publicKey);
-    //         return extractedKeyID === keyID;
-    //     });
-    //     if (keyInfo) {
-    //         const { publicKey } = keyInfo;
-    //         const original_key = extractOriginalKey(publicKey);
-    //
-    //         return new VOPRFClient(PSTServer.PST_SUITE, original_key);
-    //     }
-    //     else {
-    //         throw new Error(`Invalid keyID`);
-    //     }
-    // }
 
     async issueToken(encodedToken: string): Promise<string> {
 
@@ -427,24 +396,16 @@ export class PSTRedeemer {
 
     async redeemToken(tokenToRedeem: string): Promise<string> {
 
-        try {
-            const issuer = await PSTResources.getIssuer();
-            const decodedToken = Uint8Array.from(Buffer.from(tokenToRedeem, 'base64'));
-            const tokReq = RedeemerRequest.deserialize(decodedToken);
-            let redeemRes = await this.redeem(tokReq, issuer);
+        const issuer = await PSTResources.getIssuer();
+        const decodedToken = Uint8Array.from(Buffer.from(tokenToRedeem, 'base64'));
+        const tokReq = RedeemerRequest.deserialize(decodedToken);
+        let redeemRes = await this.redeem(tokReq, issuer);
 
-            // TODO should throw an error if validate=false ?
-            // if ( ! redeemRes.validated ) {
-            //     throw Error("Redemption Request is Invalid");
-            // }
-
-            return Buffer.from(redeemRes.serialize()).toString('base64');
-        } catch (e: any) {
-            console.error("Error trying to redeem token", e);
-            throw Error("Error trying to redeem token", e);
+        if ( ! redeemRes.validated ) {
+            throw Error("Redemption Request is Invalid");
         }
 
-
+        return Buffer.from(redeemRes.serialize()).toString('base64');
     }
 
     async redeem(tokReq: RedeemerRequest, issuer: PSTIssuer) {

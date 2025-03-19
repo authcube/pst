@@ -71,6 +71,7 @@ app.get(`/private-state-token/redemption`, async (req, res) => {
         if (redemptionToken) {
             const redeemer = new PSTRedeemer();
 
+            // This will throw an Error if the token is invalid
             const resToken = await redeemer.redeemToken(redemptionToken);
 
             res.statusCode = 200;
@@ -83,7 +84,7 @@ app.get(`/private-state-token/redemption`, async (req, res) => {
         return res.sendStatus(400);
     } catch (e) {
         console.error(`Error on redemption: ${e}`);
-        return res.sendStatus(500);
+        return res.sendStatus(400);
     }
 });
 
