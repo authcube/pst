@@ -7,7 +7,8 @@
     "aechiara <aechiara@gmail.com>",
     "chulao <juliano.lao@sec4you.com.br>",
     "brfso <fernando.oliveira@sec4you.com.br>",
-    "isabelcurado <curado@google.com>"
+    "isabelcurado <curado@google.com>",
+    "aykutblt <aykutblt@gmail.com>"
   ],
  "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
   "module": "./dist/esm/index.js",
