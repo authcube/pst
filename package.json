@@ -1,15 +1,18 @@
 {
   "name": "@authcube/pst",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "author": "m4n3dw0lf <angelo.moura@sec4you.com.br>",
-  "maintainers": ["aechiara <aechiara@gmail.com>"],
+  "maintainers": [
+    "aechiara <aechiara@gmail.com>"
+  ],
   "contributors": [
     "aechiara <aechiara@gmail.com>",
     "chulao <juliano.lao@sec4you.com.br>",
     "brfso <fernando.oliveira@sec4you.com.br>",
-    "isabelcurado <curado@google.com>"
+    "isabelcurado <curado@google.com>",
+    "aykutblt <aykutblt@gmail.com>"
   ],
- "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
+  "description": "Typescript library implementing Private State Token API (https://wicg.github.io/trust-token-api/)",
   "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
